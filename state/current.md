@@ -4,7 +4,7 @@
 > Limits: `next:` ≤5 entries — and only until a domain file declares a `focus:`. Open points then live in that file's `next:` frontmatter and `truss status` builds the register from them; here stay `focus:` (project-wide), `blockers:` (across domains) and `branch:`. See docs/conventions.md, doctor SY-12.
 > Recently done: `git log` already carries it, current and without upkeep — `truss status` prints the last commits; see git log for the rest.
 
-focus: Both strands until the first prototype — plans are set, package 1 on both sides is the start
+focus: pipeline-3d packages 1+2 measured and done; robot strand still at package 1
 
 branch: main
 
