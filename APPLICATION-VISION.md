@@ -14,13 +14,13 @@
 
 ### 🎮 On the table
 
-The JetBot is turned on and on the Wi-Fi. On the Mac you have **two windows** open.
+The JetBot is turned on and connected to the Wi-Fi. On the Mac you have **two windows** open.
 
-**Window 1 — the robot.** A browser tab shows its live camera feed. You steer it and look through its eyes while doing so. This is the moment the project feels like robotics for the first time — and it takes almost no work, because the flashed image brings exactly this notebook along.
+**Window 1 — the robot.** A browser tab shows its live camera feed. You steer it and look through its eyes while doing so. This is the moment the project feels like robotics for the first time — and it takes almost no work, because the flashed image provides exactly this notebook.
 
 You drive a lap around the room. At every station the robot stops briefly, the image settles, a shot is taken. Then onwards.
 
-**Then a command on the Mac.** The images migrate over, and for a minute or two seemingly nothing exciting happens: the computer figures out where the camera was located for every single shot.
+**Then a command on the Mac.** The images are transferred, and for a minute or two seemingly nothing exciting happens: the computer figures out where the camera was located for every single shot.
 
 ### ✨ Window 2 — the moment you are doing this for
 
@@ -37,7 +37,7 @@ And the crucial part: **while this is running, you can navigate through the half
 
 ### 📱 At the end
 
-A command boils the result down to a fifteenth. The room the robot just drove through opens in the browser — and later, if you want, on every phone in the course.
+A command compresses the result to a fifteenth of its size. The room the robot just drove through opens in the browser — and later, if you want, on every phone in the course.
 
 ---
 
@@ -45,7 +45,7 @@ A command boils the result down to a fifteenth. The room the robot just drove th
 
 ```mermaid
 graph LR
-    A["🤖 JetBot<br/>Sensor & Actuator"] -->|Folder of images| B["💻 MacBook M4<br/>Compute & Stage"]
+    A["🤖 JetBot<br/>Sensor platform"] -->|Folder of images| B["💻 MacBook M4<br/>Compute & Stage"]
     B -->|finished model| C["🖥️ Lenovo<br/>Showcase"]
     style A fill:#e8f4ea,stroke:#4a7c59,color:#000
     style B fill:#e8eef8,stroke:#3d5a8a,color:#000
@@ -87,7 +87,7 @@ This is the most important conceptual trap in the whole project.
 
 ### 🏠 The 3D model — no machine learning at all
 
-Despite the word "training", **nothing is learning here**. It is an optimization.
+Despite the word "training", **there is no learning here**. It is an optimization.
 
 The model consists of hundreds of thousands of tiny, translucent 3D ellipsoids — "Gaussians" or "splats". Each has a position, size, orientation, color, opacity. Nothing more.
 

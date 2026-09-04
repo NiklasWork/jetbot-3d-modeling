@@ -7,7 +7,7 @@ next:
 blockers: none
 ---
 
-# Plan roboter
+# Plan robot
 
 > Belongs here: the path from today to the first prototype of the JetBot branch. Not here: hardware facts (context/architecture.md), Mac work (context/plan-pipeline-3d.md).
 

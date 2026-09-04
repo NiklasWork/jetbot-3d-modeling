@@ -18,9 +18,9 @@
 |---|---|---|---|
 | `context/architecture.md` | Architecture | Belongs here: Role division of the machines, the two development branches, and the staged plan. Not here: tool choice (state/decisions/), open questions (state/open-decisions.md). | ~1.1k |
 | `context/glossary.md` | Glossary | *[No description]* | ~290 |
-| `context/messwerte.md` | Messwerte | Belongs here: gemessene Laufzeiten und Größen auf der echten Hardware, mit Messbedingung. Not here: Werkzeugbegründungen (state/decisions/), Planung (context/plan-*.md). | ~530 |
+| `context/measurements.md` | Measurements | Belongs here: measured runtimes and sizes on real hardware, with measurement conditions. Not here: tool choice rationales (state/decisions/), planning (context/plan-*.md). | ~560 |
 | `context/plan-pipeline-3d.md` | Plan pipeline-3d | Belongs here: the path from today to the first prototype of the Mac branch. Not here: tool choice rationales (state/decisions/), robot work (context/plan-robot.md). | ~530 |
-| `context/plan-robot.md` | Plan roboter | Belongs here: the path from today to the first prototype of the JetBot branch. Not here: hardware facts (context/architecture.md), Mac work (context/plan-pipeline-3d.md). | ~460 |
+| `context/plan-robot.md` | Plan robot | Belongs here: the path from today to the first prototype of the JetBot branch. Not here: hardware facts (context/architecture.md), Mac work (context/plan-pipeline-3d.md). | ~460 |
 
 ## /docs
 
