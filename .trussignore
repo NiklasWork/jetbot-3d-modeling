@@ -36,3 +36,8 @@
 .codex/
 .gemini/
 .opencode/
+
+# ── Arbeitsprodukt (D-011) ──────────────────────────────────────────────────
+# Der Code lebt in zwei eigenstaendigen Projekten. Map und doctor pruefen den
+# Workspace, nicht das Produkt.
+repos/
