@@ -1,9 +1,8 @@
 ---
 focus: Turn a folder of photos into a viewable 3D model — with one command, reproducibly
 next:
-  - Package 3 — Exercise the COLMAP path, incremental against global mapper
-  - Package 4 — Chain the steps into one command
-  - Package 5 — Compress and display with pinned versions
+  - Package 6 — Have someone else repeat the run from the README alone
+  - Measure the JetBot's own frames through the pipeline once they exist
 blockers: none
 ---
 
@@ -21,25 +20,20 @@ Each package can be accepted individually. No package starts before the previous
 2. ✅ **Reference run.** A known public dataset through Brush. Numbers in context/measurements.md.
    *Done when:* real numbers replace the estimates from D-002. — Also delivered: quality curve over the training steps, and throttling settled by throughput normalisation because `pmset -g therm` is mute on Apple Silicon.
 
-3. **COLMAP pipeline.** `feature_extractor` → `sequential_matcher` → mapper → `image_undistorter`. Run `mapper` and `global_mapper` on the same images and keep the faster one that still registers everything.
-   *Done when:* over 90% of the images are registered, undistorted pinhole images are available, and both mapper runtimes are in context/measurements.md.
+3. ✅ **COLMAP pipeline.** 251 of 251 registered on a sequential capture, undistorted pinhole images produced, both mapper runtimes in context/measurements.md.
+   The comparison changed the answer it was asked for: **the matcher, not the mapper, decides whether a reconstruction succeeds**, and `global_mapper` is not faster at our scale. Defaults are sequential + incremental, with exhaustive matching as the named fallback.
 
-4. **Chaining.** A script that turns Package 3 and Package 2 into a pipeline: folder in, `.ply` out. Use the measured fast preset, not the Brush defaults — see the variant table in context/measurements.md.
-   *Done when:* a single command processes a fresh folder end-to-end.
+4. ✅ **Chaining.** `repos/pipeline-3d/pipeline.sh` — folder in, model out, three resumable stages. 380 s end to end on 251 images.
 
-5. **Compress and display.** `.ply` → `.sog`, viewer, load model. Pin versions.
-   *Done when:* the own model is navigable in the browser.
+5. ✅ **Compress and display.** `.ply` → `.sog` → self-contained `.html` at a pinned `@playcanvas/splat-transform@3.3.3`. Verified navigable in a browser.
 
 6. **Prototype.** Everything in one command, described in the README.
-   *Done when:* someone else can repeat it solely from the README.
+   *Done when:* someone else can repeat it solely from the README. The README is written; the check is a human act, not one this side can self-declare.
 
-## Tool capabilities that change these packages
+## Capabilities not yet used
 
-Found while measuring, not yet acted on:
-
-- **`colmap global_mapper` exists in our 4.1.1.** GLOMAP — global instead of incremental structure-from-motion, by the COLMAP authors — was merged into COLMAP itself and its own repository marked deprecated. Same database in, same sparse format out, so it is a drop-in for the `mapper` step in Package 3. The paper claims one to two orders of magnitude faster at equal or better accuracy. Unmeasured here.
-- **`splat-transform` 3.3.3 does far more than `.ply` → `.sog`.** `--filter-harmonics <0..3>` drops SH bands after training, `--decimate` / `--decimate-adaptive` reduce splat count, `--filter-floaters` removes the artefacts typical of indoor scans, `lod-meta.json` writes streamed levels of detail — and `.html` emits a self-contained viewer in a single file, which removes the need for any server for a demonstration.
-- **PlayCanvas recommends staying under one million splats for mobile devices.** The reference run produces 1.28 M. Capping splats is therefore a viewer requirement, not only a speed lever.
+- **`splat-transform` can prune what the capture got wrong.** `--filter-floaters` removes the drifting artefacts typical of indoor scans, `--decimate-adaptive` cuts splat count by local error, `lod-meta.json` writes streamed levels of detail. Worth reaching for once real JetBot frames show which artefacts we actually get — guessing now would tune against the wrong scene.
+- **`--matcher exhaustive` is the escape hatch and costs 847 s on 263 images.** It is what reproduces the published reconstructions. If the drive's own frames fail the registration gate, this is the first thing to try, before touching the mapper.
 
 ## Afterwards, not now
 

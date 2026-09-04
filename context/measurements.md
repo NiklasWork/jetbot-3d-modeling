@@ -96,6 +96,44 @@ Inserting **90 s of idle before each run** removes the effect completely:
 
 Both orders, both to the second. **The 62 % was the cold autotune cache; the flag itself costs about 6 %** and 0.27 dB at step 1000 (PSNR 21.24 against 20.95), matching the 0.26 dB seen at 8000 steps.
 
+## Structure from motion — 2026-09-05
+
+COLMAP 4.1.1 (Homebrew, no CUDA), SIFT on the GPU via OpenGL, machine open and ventilated. Within each pair both mappers read the byte-identical database, so the comparison is fair by construction; the ±3 % band is irrelevant here, the differences are far larger. `drjohnson` is Deep Blending (indoor, handheld stills), `truck` the same 251 images every Brush number above uses.
+
+| Images | Matcher | Match | Mapper | Map | Registered | Points | Obs/image | Reproj |
+|---|---|---:|---|---:|---|---:|---:|---:|
+| drjohnson, 263 | sequential | 42 s | global | 17 s | 262 | 12,175 | 175 | 0.44 px |
+| | | | incremental | 16 s | **71**, of 9 fragments | 8,389 | 437 | 0.41 px |
+| drjohnson, 263 | exhaustive | **847 s** | global | 53 s | 263 | 64,068 | 1,123 | 0.76 px |
+| | | | incremental | 123 s | 263 | **81,175** | **1,309** | **0.56 px** |
+| truck, 251 | sequential | 30 s | global | 105 s | 251 | 59,647 | 1,386 | 0.41 px |
+| | | | incremental | 53 s | 251 | 55,870 | 1,367 | 0.43 px |
+
+Feature extraction never matters: 11–15 s for 250–263 images at ~10,000 SIFT features each.
+
+**The published drjohnson reconstruction has 80,861 points at 0.563 px.** Exhaustive matching with the incremental mapper reproduces it to within 0.4 % — that row is the right answer, and the yardstick for the rest.
+
+- **The matcher decides whether the reconstruction succeeds; the mapper does not.** Sequential matching on drjohnson yields 12 k points where exhaustive finds 64–81 k. No mapper repairs a thin graph.
+- **Sequential matching is valid only for a genuine sequence.** Perfect on truck, a video, in 30 s. It fails on drjohnson, handheld stills whose numbering has gaps. D-009 chose it for the video case and holds — the precondition is now measured rather than assumed, and a stop-and-go drive (D-013) meets it.
+- **The "one to two orders of magnitude" claim for `global_mapper` does not hold at our scale.** It is 2× slower than incremental on truck and 2.3× faster on drjohnson — a factor of 2.5 either way. GLOMAP's speedup is against incremental on large unordered collections, not 250 ordered frames.
+- **`global_mapper` is the robust one, `mapper` the accurate one.** Off a thin graph global registers 262 of 263 while incremental shatters into nine fragments; off a good graph incremental returns 27 % more points at 26 % less reprojection error. Global's robustness is partly false comfort — its 262 images rest on 175 observations each, a seventh of a healthy reconstruction, so they are registered but barely constrained.
+- **Exhaustive matching costs more than training.** 847 s against 289 s for a whole `fast` run. Fallback, not default.
+
+`pipeline.sh` therefore defaults to sequential + incremental and aborts with the fallback named when the graph turns out thin.
+
+### The whole pipeline end to end
+
+`pipeline.sh` on the raw truck images with its defaults — sequential matcher, incremental mapper, `fast` preset. No poses from the dataset: COLMAP recomputed them.
+
+| Stage | Time | Result |
+|---|---:|---|
+| sfm | 99 s | 251 of 251 registered, one model, undistorted pinhole images |
+| train | 254 s | 400 k splats, `model.ply` 57.98 MiB |
+| compress | 27 s | `model.sog` 6.78 MiB, `model.html` 11.90 MiB |
+| **total** | **380 s** | one command, one folder in |
+
+**Six and a half minutes from a folder of photos to a model that orbits in a browser.** Adding real SfM to the `fast` preset costs 99 s, a third of the training time — the block that was assumed to dominate is the smaller one. The `.html` output is the PlayCanvas SuperSplat viewer with the model inlined, so the demonstration needs no server at all; conversion to `.sog` is 27 s here against 59–67 s for the baseline's 288 MiB `.ply`, tracking file size.
+
 ## Measurement protocol
 
 Three false conclusions came out of this project's measurements before this protocol existed: background load with a cold cache, then a laptop that spent part of a series inside a cotton bag, then a cold cache inside a timed run. Future measurements follow this.
@@ -125,7 +163,9 @@ Three false conclusions came out of this project's measurements before this prot
 | `.sog` 15–20× smaller than `.ply` | D-004 | **confirmed** — factor 15.1, twice |
 | Conversion "~15 sec" | D-004 | **false** — 59 s and 67 s |
 | `npx splat-transform` | D-004 | **false** — package is `@playcanvas/splat-transform` |
+| Viewer needs a hosted container | D-004 | **not for a demo** — `splat-transform` emits the SuperSplat viewer as one self-contained `.html`; hosting only matters for the takeaway link |
+| `global_mapper` "1–2 orders of magnitude faster" | plan-pipeline-3d | **false at our scale** — within a factor of 2.5 of `mapper`, in both directions |
 
 ## Open
 
-- **The SfM half is unmeasured.** Every number here starts from poses shipped with the dataset. For the JetBot that step is real work and probably the larger block — `colmap mapper` against `colmap global_mapper` is Package 3.
+- **No number here comes from our own camera.** Every dataset measured is DSLR-quality, well lit, high overlap. The JetBot delivers 1280×960 rolling-shutter fisheye frames of rooms with textureless walls. Whether COLMAP registers those at all is the open risk D-009 named, and only real frames can close it.
