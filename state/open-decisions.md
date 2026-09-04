@@ -15,14 +15,14 @@ Options:
 - A: [short label] — [what choosing it means] +[upside] / –[downside]
 - B: [short label] (recommended) — [what choosing it means] +[upside] / –[downside]
 - C: [short label] — [what choosing it means] +[upside] / –[downside]
-- …: so viele, wie die Frage wirklich hat — zwei sind das Minimum, nicht die Form
+- …: as many as the question actually has — two is the minimum, not the format
 Trade-offs: [cross-cutting: cost, reversibility — only what the option lines don't carry]
 Leaning: [which option and why, one line · or "none" plus what input would decide it]
 Needed from human: [the decision or input you need]
 
 Option lines are keyed (A:/B:/C:/…), label before the ` — `, then upside after `+` and
-downside after `–`, separated by ` / `. Es gibt keine Obergrenze: liste jede Option,
-die die Frage wirklich hat — eine echte Dreier-Wahl in ein Ja/Nein zu pressen
-verdeckt genau die Möglichkeit, die der Mensch gewählt hätte. Mark at most one
+downside after `–`, separated by ` / `. There is no upper limit: list every option
+that the question actually has — forcing a true three-way choice into a yes/no
+hides the exact possibility that the human would have chosen. Mark at most one
 option `(recommended)`, and only if `Leaning:` agrees. Keep the label short — it is
 the click target. -->

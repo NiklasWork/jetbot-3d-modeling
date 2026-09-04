@@ -1,42 +1,42 @@
-# Architektur
+# Architecture
 
-> Belongs here: Rollenteilung der Maschinen, die zwei Entwicklungsstränge und der Stufenplan. Not here: Werkzeugwahl (state/decisions/), offene Fragen (state/open-decisions.md).
+> Belongs here: Role division of the machines, the two development branches, and the staged plan. Not here: tool choice (state/decisions/), open questions (state/open-decisions.md).
 
-## Rollenteilung
+## Role division
 
-Die Grenze ist Latenz, nicht Rechenleistung: was in unter ~100 ms reagieren muss, läuft auf dem Roboter; alles andere auf dem Mac.
+The boundary is latency, not compute: whatever must react in under ~100 ms runs on the robot; everything else on the Mac.
 
-- **JetBot** — Sensor und Aktor. Fahren, Kamerabild aufnehmen, Bild für die Bedienoberfläche streamen, Aufnahmen ablegen. Später optional ein kleines vortrainiertes Modell im Fahrtakt. Nie: Pose-Schätzung, nie 3DGS-Training.
-- **MacBook M4** — Rechenwerk und Bühne. Pose-Schätzung, 3DGS-Training mit sichtbarem Live-Viewer, Konvertierung nach `.sog`. Steuert den Roboter nie in Echtzeit.
-- **Lenovo-Server (Coolify)** — Schaufenster, sonst nichts (D-007). Statisches Hosting des fertigen Modells. Keine GPU, nicht nachrüstbar, 4 Kerne — als Rechenknoten für jede Aufgabe hier langsamer als der Mac. Harte Grenze: **~9 MBit/s Upload**. Ein 50-MB-Modell braucht damit knapp eine Minute pro Abruf; ein Hörsaal, der gleichzeitig lädt, bringt die Leitung zum Erliegen. Für die Vorführung deshalb lokal vom Mac ausliefern und den Web-Link als Mitnahme danach verstehen.
+- **JetBot** — Sensor and actuator. Driving, capture the camera image, stream image for the control UI, store shots. Later optionally a small pre-trained model in the drive cycle. Never: pose estimation, never 3DGS training.
+- **MacBook M4** — Compute and stage. Pose estimation, 3DGS training with visible live viewer, conversion to `.sog`. Never controls the robot in real-time.
+- **Lenovo server (Coolify)** — Showcase, nothing else (D-007). Static hosting of the finished model. No GPU, not upgradable, 4 cores — as a compute node for every task here slower than the Mac. Hard limit: **~9 Mbit/s upload**. A 50 MB model takes almost a minute per request with this; a lecture hall loading simultaneously brings the connection to a standstill. Therefore, serve it locally from the Mac for the demonstration and consider the web link as a takeaway afterwards.
 
-## Hardware-Realität JetBot
+## Hardware reality JetBot
 
-Bestätigt über das aufgespielte Image `jetbot-043_nano-4gb-jp45`: klassischer Jetson Nano 4GB, 128-Kern-Maxwell-GPU, ~0,5 TFLOPS, 4 GB geteilter Speicher — kein Orin. Software: JetBot 0.4.3 auf JetPack 4.5 (Ubuntu 18.04, Python 3.6, CUDA 10.2, TensorRT 7.1), eingefroren per D-008. Das trägt kleine, ältere Modelle im Fahrtakt und sonst nichts.
+Confirmed via the flashed image `jetbot-043_nano-4gb-jp45`: classic Jetson Nano 4GB, 128-core Maxwell GPU, ~0.5 TFLOPS, 4 GB shared memory — no Orin. Software: JetBot 0.4.3 on JetPack 4.5 (Ubuntu 18.04, Python 3.6, CUDA 10.2, TensorRT 7.1), frozen per D-008. This carries small, older models in the drive cycle and nothing else.
 
-**Python lässt sich aufrüsten, es nützt nur nichts.** Ein neueres Python ist auf Ubuntu 18.04 installierbar (deadsnakes oder Eigenbau), aber NVIDIA liefert CUDA-fähige PyTorch-Räder ausschließlich für das mitgelieferte Python 3.6 — auch der offizielle `l4t-pytorch`-Container ist 3.6. Alles darüber hieße PyTorch selbst mit CUDA übersetzen. Und die eigentliche Decke liegt tiefer als Python: die Maxwell-GPU kann nur CUDA 10.2, PyTorch 2.x verlangt CUDA 11+. Ein moderner Torch-Stack ist auf dieser Hardware also unabhängig von der Python-Version nicht erreichbar. Wer trotzdem ein neueres Modell fahren will, geht über ONNX → TensorRT 7.1: das läuft GPU-beschleunigt aus Python 3.6 heraus und macht die Modellwahl von der Python-Version unabhängig.
+**Python can be upgraded, it just doesn't help.** A newer Python is installable on Ubuntu 18.04 (deadsnakes or custom build), but NVIDIA provides CUDA-capable PyTorch wheels exclusively for the included Python 3.6 — even the official `l4t-pytorch` container is 3.6. Anything above that would mean compiling PyTorch from scratch with CUDA. And the actual ceiling is lower than Python: the Maxwell GPU can only do CUDA 10.2, PyTorch 2.x requires CUDA 11+. A modern Torch stack is therefore unreachable on this hardware regardless of the Python version. If you still want to run a newer model, go via ONNX → TensorRT 7.1: this runs GPU-accelerated from within Python 3.6 and makes the model choice independent of the Python version.
 
-Das Image bringt die JetBot-Notebooks mit — `basic_motion` und `teleoperation` liefern die manuelle Steuerung samt Live-Kamerabild aus D-006 bereits fertig, `collision_avoidance` und `road_following` sind die Vorlage für den optionalen Fahralgorithmus.
+The image comes with the JetBot notebooks — `basic_motion` and `teleoperation` already provide the manual control including live camera image from D-006 out of the box, `collision_avoidance` and `road_following` are the template for the optional driving algorithm.
 
-## Stufenplan
+## Staged plan
 
-Jede Stufe ist für sich vorführbar. Keine Stufe hängt an einer späteren.
+Every stage is demonstrable on its own. No stage depends on a later one.
 
-1. **Stufe 0 — Pipeline ohne Roboter.** Öffentlicher Datensatz → Brush mit Live-Viewer auf dem Mac → `.sog` → SuperSplat **lokal auf dem Mac**. Beweist die gesamte hintere Hälfte und liefert sofort das visuell stärkste Artefakt des Projekts. Das Ausrollen auf den Lenovo ist zurückgestellt: es ändert nur die Adresse, an der derselbe Viewer liegt, und wird bei Bedarf zum Schluss nachgeholt.
-2. **Stufe 1 — Roboter fährt, Bild kommt an.** Manuelle Steuerung mit Live-Kamerabild im Browser. Hängt an nichts aus Stufe 0.
-3. **Stufe 2 — Verbinden.** Roboter nimmt auf, Mac rechnet, Ergebnis landet im Viewer. Aufnahmegeometrie ist hier die Qualitätsgröße: Kamera so hoch wie das Chassis erlaubt und leicht nach oben, Schleifen statt Geradeausfahrt, viel Licht, lieber ein gut erfasster Raumteil als ein schlecht erfasster ganzer Raum.
-4. **Stufe 3 — Ausbau.** In beliebiger Reihenfolge: Objekterkennung mit Verortung im Modell (D-012), Fahralgorithmus, Ausrollen auf den Lenovo, Rekonstruktion während der Fahrt.
+1. **Stage 0 — Pipeline without robot.** Public dataset → Brush with live viewer on the Mac → `.sog` → SuperSplat **locally on the Mac**. Proves the entire back half and immediately delivers the visually strongest artifact of the project. The rollout to the Lenovo is postponed: it only changes the address where the same viewer resides, and will be caught up at the end if needed.
+2. **Stage 1 — Robot drives, image arrives.** Manual control with live camera image in the browser. Depends on nothing from stage 0.
+3. **Stage 2 — Connect.** Robot captures, Mac computes, result lands in the viewer. Capture geometry is the quality factor here: camera as high as the chassis allows and tilted slightly upwards, loops instead of straight driving, lots of light, rather a well-captured part of a room than a poorly captured entire room.
+4. **Stage 3 — Expansion.** In any order: object detection with 3D placement in the model (D-012), driving algorithm, rollout to the Lenovo, reconstruction during the drive.
 
-## Zwei Entwicklungsstränge
+## Two development branches
 
-Getrennte Repos, getrennte Laufzeit, getrennt vorführbar (D-011). Sie treffen sich an genau einer Stelle: dem Ordner mit Bildern, den der Roboter erzeugt und die Pipeline liest.
+Separate repos, separate runtime, separately demonstrable (D-011). They meet at exactly one point: the folder with images that the robot generates and the pipeline reads.
 
 | | `repos/pipeline-3d/` | `repos/roboter/` |
 |---|---|---|
-| Läuft auf | MacBook M4, macOS | JetBot, Ubuntu 18.04 |
-| Sprache | Python 3.14 / Shell | **Python 3.6** — kein Walrus, keine dataclasses |
-| Werkzeuge | COLMAP, Brush, splat-transform | JetBot 0.4.3, jetson-inference |
-| Liefert | das 3D-Modell und den Viewer | Bilder, Steuerung, Objekterkennungen |
-| Vorführbar als | wachsendes Modell im Live-Viewer | fahrender Roboter mit Live-Erkennung |
+| Runs on | MacBook M4, macOS | JetBot, Ubuntu 18.04 |
+| Language | Python 3.14 / Shell | **Python 3.6** — no walrus, no dataclasses |
+| Tools | COLMAP, Brush, splat-transform | JetBot 0.4.3, jetson-inference |
+| Delivers | the 3D model and the viewer | images, control, object detections |
+| Demonstrable as | growing model in the live viewer | driving robot with live detection |
 
-Die Schnittstelle ist bewusst dumm: ein Ordner mit Bildern plus eine Datei mit Erkennungen pro Bild. Kein Protokoll, keine Netzwerk-API, keine gemeinsame Bibliothek — damit bleibt jede Seite ohne die andere lauffähig und einzeln reparierbar.
+The interface is deliberately dumb: a folder with images plus one file with detections per image. No protocol, no network API, no shared library — this way each side remains executable and individually repairable without the other.

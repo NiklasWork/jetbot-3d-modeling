@@ -1,175 +1,175 @@
-# Anwendungsvision
+# Application Vision
 
-> Wie sich das Projekt anfühlt, wenn es läuft — für Menschen geschrieben. Die knappe strategische Fassung steht in VISION.md, die Begründungen in state/decisions/.
-
----
-
-## In einem Satz
-
-**Ein kleiner Roboter fährt durch einen Raum, und auf dem Bildschirm daneben wächst dieser Raum als begehbares 3D-Modell aus dem Nichts zusammen.**
+> How the project feels when it's running — written for humans. The concise strategic version is in VISION.md, the reasoning in state/decisions/.
 
 ---
 
-## Was du siehst und tust
+## In one sentence
 
-### 🎮 Auf dem Tisch
+**A small robot drives through a room, and on the screen next to it, this room emerges out of nowhere as a walkable 3D model.**
 
-Der JetBot steht eingeschaltet im WLAN. Auf dem Mac hast du **zwei Fenster** offen.
+---
 
-**Fenster 1 — der Roboter.** Ein Browser-Tab zeigt sein Kamerabild live. Du steuerst ihn und schaust dabei durch seine Augen. Das ist der Moment, in dem sich das Projekt zum ersten Mal nach Robotik anfühlt — und er kostet fast keine Arbeit, weil das aufgespielte Image genau dieses Notebook mitbringt.
+## What you see and do
 
-Du fährst eine Runde durch den Raum. An jeder Station hält der Roboter kurz an, das Bild beruhigt sich, ein Foto fällt. Dann weiter.
+### 🎮 On the table
 
-**Dann ein Befehl auf dem Mac.** Die Bilder wandern herüber, und ein, zwei Minuten lang passiert scheinbar nichts Aufregendes: der Rechner sucht heraus, wo die Kamera bei jeder einzelnen Aufnahme stand.
+The JetBot is turned on and on the Wi-Fi. On the Mac you have **two windows** open.
 
-### ✨ Fenster 2 — der Moment, für den ihr das macht
+**Window 1 — the robot.** A browser tab shows its live camera feed. You steer it and look through its eyes while doing so. This is the moment the project feels like robotics for the first time — and it takes almost no work, because the flashed image brings exactly this notebook along.
 
-Brush öffnet sein Viewer-Fenster.
+You drive a lap around the room. At every station the robot stops briefly, the image settles, a shot is taken. Then onwards.
 
-| Zeitpunkt | Was du siehst |
+**Then a command on the Mac.** The images migrate over, and for a minute or two seemingly nothing exciting happens: the computer figures out where the camera was located for every single shot.
+
+### ✨ Window 2 — the moment you are doing this for
+
+Brush opens its viewer window.
+
+| Time | What you see |
 |---|---|
-| Sekunde 0 | Eine formlose Wolke aus farbigen Klecksen |
-| Sekunde 10 | Grob erkennbar: Wände sind Wände, dunkle Flächen sind Möbel |
-| Minute 1 | Kanten werden scharf, Texturen tauchen auf |
-| Minute 10 | Ein Raum, durch den du fliegen kannst |
+| Second 0 | A shapeless cloud of colored splats |
+| Second 10 | Roughly recognizable: walls are walls, dark areas are furniture |
+| Minute 1 | Edges become sharp, textures appear |
+| Minute 10 | A room you can fly through |
 
-Und das Entscheidende: **während das läuft, kannst du mit der Maus durch den halbfertigen Raum navigieren.** Das ist kein Fortschrittsbalken — du siehst der Rekonstruktion beim Entstehen zu.
+And the crucial part: **while this is running, you can navigate through the half-finished room with your mouse.** This is not a progress bar — you are watching the reconstruction emerge.
 
-### 📱 Am Ende
+### 📱 At the end
 
-Ein Befehl dampft das Ergebnis auf ein Fünfzehntel ein. Der Raum, durch den der Roboter gerade gefahren ist, öffnet sich im Browser — und später, wenn ihr wollt, auf jedem Handy im Kurs.
+A command boils the result down to a fifteenth. The room the robot just drove through opens in the browser — and later, if you want, on every phone in the course.
 
 ---
 
-## Wer macht was
+## Who does what
 
 ```mermaid
 graph LR
-    A["🤖 JetBot<br/>Sensor & Aktor"] -->|Ordner mit Bildern| B["💻 MacBook M4<br/>Rechenwerk & Bühne"]
-    B -->|fertiges Modell| C["🖥️ Lenovo<br/>Schaufenster"]
+    A["🤖 JetBot<br/>Sensor & Actuator"] -->|Folder of images| B["💻 MacBook M4<br/>Compute & Stage"]
+    B -->|finished model| C["🖥️ Lenovo<br/>Showcase"]
     style A fill:#e8f4ea,stroke:#4a7c59,color:#000
     style B fill:#e8eef8,stroke:#3d5a8a,color:#000
     style C fill:#f5f0e8,stroke:#8a7a52,color:#000
 ```
 
-| | Aufgabe | Ausdrücklich **nicht** |
+| | Task | Explicitly **not** |
 |---|---|---|
-| 🤖 **JetBot** | Fahren, aufnehmen, Bild streamen, später Objekte erkennen | Posen schätzen, 3D-Training |
-| 💻 **MacBook** | Posen, 3D-Training mit Live-Viewer, Konvertierung | Den Roboter in Echtzeit steuern |
-| 🖥️ **Lenovo** | Den fertigen Viewer ausliefern | Irgendetwas rechnen |
+| 🤖 **JetBot** | Drive, capture, stream image, later object detection | Pose estimation, 3D training |
+| 💻 **MacBook** | Poses, 3D training with live viewer, conversion | Steer the robot in real time |
+| 🖥️ **Lenovo** | Serve the finished viewer | Compute anything |
 
-> **Faustregel:** Die Grenze ist *Latenz*, nicht Rechenleistung. Was in unter 100 ms reagieren muss, läuft auf dem Roboter. Alles andere auf dem Mac.
+> **Rule of thumb:** The boundary is *latency*, not compute power. Whatever must react in under 100 ms runs on the robot. Everything else on the Mac.
 
 ---
 
-## Zwei Baustellen, die sich kaum berühren
+## Two construction sites that barely touch
 
-Das Projekt besteht aus **zwei getrennten Entwicklungen**, die parallel laufen und sich an genau einer Stelle treffen: einem Ordner mit Bildern.
+The project consists of **two separate developments** that run in parallel and meet in exactly one place: a folder of images.
 
 ```mermaid
 graph TD
-    R["repos/roboter<br/>Ubuntu 18.04 · Python 3.6"] -->|Bilder + Erkennungen| S(("📁"))
+    R["repos/roboter<br/>Ubuntu 18.04 · Python 3.6"] -->|Images + Detections| S(("📁"))
     S --> P["repos/pipeline-3d<br/>macOS · COLMAP + Brush"]
     style R fill:#e8f4ea,stroke:#4a7c59,color:#000
     style P fill:#e8eef8,stroke:#3d5a8a,color:#000
     style S fill:#fff,stroke:#999,color:#000
 ```
 
-**Warum getrennt?** Verschiedene Betriebssysteme, verschiedene Python-Versionen, verschiedene Fehlerbilder. Zusammengelegt würden beide Seiten Kompromisse eingehen, von denen keine profitiert. Getrennt lässt sich jede Seite **einzeln vorführen** — der fahrende Roboter ist eine Demo, das wachsende 3D-Modell ist eine zweite.
+**Why separate?** Different operating systems, different Python versions, different error patterns. Merged together, both sides would make compromises that benefit neither. Kept separate, each side can be **demonstrated individually** — the driving robot is one demo, the growing 3D model is a second one.
 
-Die Schnittstelle ist bewusst dumm: ein Ordner, kein Protokoll, keine gemeinsame Bibliothek.
-
----
-
-## „Modell" heißt hier zwei völlig verschiedene Dinge
-
-Das ist die wichtigste begriffliche Falle im ganzen Projekt.
-
-### 🏠 Das 3D-Modell — gar kein maschinelles Lernen
-
-Trotz des Wortes „Training" **lernt hier nichts**. Es ist eine Optimierung.
-
-Das Modell besteht aus hunderttausenden winzigen, durchscheinenden 3D-Ellipsoiden — „Gauß-Klecksen". Jeder hat Position, Größe, Ausrichtung, Farbe, Durchsichtigkeit. Mehr nicht.
-
-> **Training heißt hier:** Rendere die Wolke aus einer bekannten Kameraposition → vergleiche mit dem echten Foto → schiebe jeden Kleks ein Stück in Richtung „weniger Unterschied". Dann das nächste Foto. Acht- bis dreißigtausend Mal.
-
-| | |
-|---|---|
-| **Was es am Ende macht** | Nichts. Es *ist* der Raum. |
-| **Wo es funktioniert** | Ausschließlich in **diesem einen Raum** |
-| **Das Ziel** | Fotorealistisch durch einen echten Raum fliegen |
-| **Der Bonus** | Die Optimierung ist *sichtbar* — das ist euer Präsentations-Kern |
-
-### 🧠 Das Fahr- und Erkennungsmodell — echtes maschinelles Lernen
-
-Hier stimmt die klassische Aufteilung.
-
-| | |
-|---|---|
-| **Eingang** | Das Kamerabild |
-| **Ausgang** | Eine Entscheidung — „frei"/„blockiert", oder „das ist ein Stuhl" |
-| **Trainiert** | Einmal, auf dem Mac (oder vortrainiert heruntergeladen) |
-| **Läuft** | Viele Male pro Sekunde, auf dem Roboter |
-| **Was es kann** | **Verallgemeinern** — auch auf Situationen, die es nie gesehen hat |
-
-Das ist der ganze Unterschied: Das 3D-Modell kennt einen Raum perfekt und sonst nichts. Das Fahrmodell kennt keinen Raum, aber es kommt mit jedem zurecht.
+The interface is deliberately dumb: a folder, no protocol, no shared library.
 
 ---
 
-## Die Pipeline — und wo sie bricht
+## "Model" means two completely different things here
+
+This is the most important conceptual trap in the whole project.
+
+### 🏠 The 3D model — no machine learning at all
+
+Despite the word "training", **nothing is learning here**. It is an optimization.
+
+The model consists of hundreds of thousands of tiny, translucent 3D ellipsoids — "Gaussians" or "splats". Each has a position, size, orientation, color, opacity. Nothing more.
+
+> **Training here means:** Render the cloud from a known camera position → compare with the real shot → nudge each splat a bit towards "less difference". Then the next shot. Eight to thirty thousand times.
+
+| | |
+|---|---|
+| **What it does in the end** | Nothing. It *is* the room. |
+| **Where it works** | Exclusively in **this one room** |
+| **The goal** | Fly photorealistically through a real room |
+| **The bonus** | The optimization is *visible* — this is your presentation core |
+
+### 🧠 The driving and detection model — real machine learning
+
+Here the classic division holds.
+
+| | |
+|---|---|
+| **Input** | The camera image |
+| **Output** | A decision — "free"/"blocked", or "that is a chair" |
+| **Trained** | Once, on the Mac (or downloaded pre-trained) |
+| **Runs** | Many times a second, on the robot |
+| **What it can do** | **Generalize** — even to situations it has never seen |
+
+That is the whole difference: The 3D model knows one room perfectly and nothing else. The driving model knows no room, but it can handle any.
+
+---
+
+## The pipeline — and where it breaks
 
 ```mermaid
 graph LR
-    A["📷 Bilder"] --> B["📐 Posen<br/>+ Entzerren"]
+    A["📷 Images"] --> B["📐 Poses<br/>+ Undistortion"]
     B --> C["✨ Training"]
-    C --> D["📦 Komprimieren"]
+    C --> D["📦 Compression"]
     D --> E["🌐 Viewer"]
     style B fill:#f8e8e8,stroke:#a35,color:#000
 ```
 
-Der rot markierte Schritt ist die **Sollbruchstelle**.
+The step marked in red is the **single point of failure**.
 
-Die Posen-Schätzung muss für jedes Bild herausfinden, *wo* die Kamera stand und *wohin* sie zeigte. Sie scheitert an:
+Pose estimation has to figure out for every image *where* the camera was and *where* it was pointing. It fails on:
 
-- 🌫️ **unscharfen Bildern** — der häufigste Fall
-- 🧱 **texturlosen weißen Wänden** — es braucht wiedererkennbare Punkte
-- 🪞 **Spiegeln, Glas, glänzenden Böden**
-- 🔁 **sich wiederholenden Mustern**
-- 🚶 **Dingen, die sich während der Aufnahme bewegt haben**
+- 🌫️ **blurry images** — the most common case
+- 🧱 **textureless white walls** — it needs recognizable points
+- 🪞 **mirrors, glass, shiny floors**
+- 🔁 **repeating patterns**
+- 🚶 **things that moved during the capture**
 
-> ⚠️ **Das Tückische:** Sie scheitert oft ohne Fehlermeldung. Du bekommst plausibel aussehende, aber falsche Positionen — und merkst es erst am verschmierten Endergebnis.
+> ⚠️ **The tricky part:** It often fails without an error message. You get plausible-looking but wrong positions — and only notice it in the smeared final result.
 
-**Und was danach kommt, kann das nicht reparieren.** Falsche Posen werden als Unschärfe ins Modell eingebacken. Deshalb entscheidet sich die Qualität bei der *Aufnahme*, nicht bei der Verarbeitung.
+**And what comes after cannot fix it.** Wrong poses are baked into the model as blurriness. That's why the quality is decided during *capture*, not during processing.
 
-### Wofür die Methode grundsätzlich ungeeignet ist
+### What the method is fundamentally unsuited for
 
-| Ungeeignet für | Warum |
+| Unsuited for | Why |
 |---|---|
-| Spiegelndes und Durchsichtiges | Sieht aus jeder Richtung anders aus → schwebende Artefakte |
-| Bewegte Objekte | Widersprechen sich zwischen den Aufnahmen |
-| Messungen | Das Modell hat keinen echten Maßstab |
-| **Blickwinkel weit weg von der Kamerabahn** | Dort war nie eine Aufnahme — und genau das ist beim bodennahen Roboter das Thema |
+| Reflective and transparent things | Looks different from every direction → floating artifacts |
+| Moving objects | Contradict themselves between shots |
+| Measurements | The model has no real scale |
+| **Angles far away from the camera trajectory** | There never was a shot there — and that is exactly the issue with a robot close to the floor |
 
 ---
 
-## Was danach möglich wird
+## What becomes possible afterwards
 
-- 🏷️ **Objekte mit Ort.** Der Roboter erkennt Stuhl, Tisch, Monitor — und die Labels landen an der richtigen Stelle im 3D-Modell. Man klickt sie im Browser an.
-- 🧭 **Die gefahrene Bahn im Modell.** Als Linie eingezeichnet: der Weg des Roboters durch den Raum, den er selbst aufgenommen hat. Kostet fast nichts, weil die Positionen ohnehin berechnet werden.
-- 🤖 **Selbstständiges Fahren** statt gesteuert.
-- 🎯 **Die Kür:** Der Roboter fährt gezielt dorthin, wo das 3D-Modell noch löchrig ist. Dann greifen beide Projekthälften ineinander.
+- 🏷️ **Objects with a location.** The robot detects a chair, table, monitor — and the labels end up in the right place in the 3D model. You click them in the browser.
+- 🧭 **The driven trajectory in the model.** Drawn as a line: the path of the robot through the room, which it captured itself. Costs almost nothing, because the positions are computed anyway.
+- 🤖 **Autonomous driving** instead of being steered.
+- 🎯 **The grand finale:** The robot drives purposefully to where the 3D model still has holes. Then both project halves interlock.
 
 ---
 
-## Die ehrlichen Grenzen
+## The honest limits
 
-| Grenze | Auswirkung |
+| Limit | Impact |
 |---|---|
-| Kamera 10 cm über dem Boden, alles in einer Ebene | Artefakte, sobald man diese Ebene verlässt |
-| Rolling-Shutter-Kamera bei Innenraumlicht | Unschärfe während der Fahrt |
-| Jetson Nano, ~0,5 TFLOPS, Software von 2021 | Nur kleine, ältere Modelle auf dem Roboter |
-| MacBook Air ohne Lüfter | Drosselt bei Dauerlast |
-| Kein CUDA-Rechner | Der Großteil des 3D-Ökosystems fällt aus |
-| Lenovo mit ~9 MBit/s Upload | Kein Hörsaal lädt dort gleichzeitig |
+| Camera 10 cm above the floor, everything in one plane | Artifacts as soon as you leave this plane |
+| Rolling-shutter camera in indoor lighting | Blurriness during the drive |
+| Jetson Nano, ~0.5 TFLOPS, software from 2021 | Only small, older models on the robot |
+| MacBook Air without a fan | Throttles under sustained load |
+| No CUDA machine | The majority of the 3D ecosystem drops out |
+| Lenovo with ~9 Mbit/s upload | No lecture hall will load there simultaneously |
 
-Keine davon verhindert das Projekt. Alle zusammen erklären, warum der Plan so aussieht, wie er aussieht.
+None of these prevent the project. All of them together explain why the plan looks the way it does.

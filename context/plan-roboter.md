@@ -1,35 +1,35 @@
 ---
-focus: Der Roboter fährt gesteuert und legt scharfe, richtig große Bilder in einem Ordner ab
+focus: The robot drives controlled and stores sharp, properly sized images in a folder
 next:
-  - Paket 1 — Roboter booten, ins WLAN bringen, SD-Karte sichern
-  - Paket 2 — Steuerung und Live-Bild aus den mitgelieferten Notebooks
-  - Paket 3 — Stop-and-Go-Aufnahmeskript schreiben
+  - Package 1 — Boot robot, connect to WiFi, backup SD card
+  - Package 2 — Control and live image from the included notebooks
+  - Package 3 — Write stop-and-go capture script
 blockers: none
 ---
 
 # Plan roboter
 
-> Belongs here: der Weg von heute bis zum ersten Prototypen des JetBot-Strangs. Not here: Hardware-Fakten (context/architektur.md), Mac-Arbeit (context/plan-pipeline-3d.md).
+> Belongs here: the path from today to the first prototype of the JetBot branch. Not here: hardware facts (context/architektur.md), Mac work (context/plan-pipeline-3d.md).
 
-**Prototyp erreicht, wenn:** eine gesteuerte Fahrt durch einen Raumteil einen Ordner scharfer Bilder erzeugt, den pipeline-3d ohne Nacharbeit verarbeitet.
+**Prototype reached when:** a controlled drive through a room section generates a folder of sharp images that pipeline-3d processes without manual rework.
 
-Alles hier läuft auf Python 3.6 (D-008). Jedes Paket ist einzeln abnehmbar.
+Everything here runs on Python 3.6 (D-008). Each package can be accepted individually.
 
-1. **Roboter am Netz.** Booten, WLAN einrichten, Jupyter im Browser erreichen. Vorher die SD-Karte sichern — siehe HT-001, danach wird verändert.
-   *Fertig wenn:* `basic_motion` bewegt die Räder aus dem Browser.
+1. **Robot on network.** Boot, setup WiFi, reach Jupyter in the browser. Before that, backup the SD card — see HT-001, afterwards changes will be made.
+   *Done when:* `basic_motion` moves the wheels from the browser.
 
-2. **Steuerung und Bild.** Das mitgelieferte `teleoperation`-Notebook in Betrieb nehmen. Kamera so hoch montieren, wie das Chassis erlaubt, leicht nach oben gekippt.
-   *Fertig wenn:* du fährst und siehst dabei das Live-Bild.
+2. **Control and image.** Put the included `teleoperation` notebook into operation. Mount camera as high as the chassis allows, tilted slightly upwards.
+   *Done when:* you drive and see the live image while doing so.
 
-3. **Aufnahmeskript.** Die Stop-and-Go-Schleife aus D-013: ein Stück fahren → anhalten → Ausschwingen abwarten → Bild → wiederholen, während der Mensch die Richtung vorgibt. Bilder auf höchstens 1280×960 verkleinern, in Farbe, Dateiname mit Zeitstempel.
-   *Fertig wenn:* eine Fahrt einen Ordner erzeugt, in dem stichprobenartig geprüfte Bilder scharf sind.
+3. **Capture script.** The stop-and-go loop from D-013: drive a bit → stop → wait for oscillation to settle → shot → repeat, while the human dictates the direction. Scale down images to at most 1280×960, in color, filename with timestamp.
+   *Done when:* a drive generates a folder in which randomly checked images are sharp.
 
-4. **Übertragung.** Ein Befehl vom Mac holt den Ordner.
-   *Fertig wenn:* der Ordner vollständig auf dem Mac liegt.
+4. **Transfer.** A command from the Mac fetches the folder.
+   *Done when:* the folder resides completely on the Mac.
 
-5. **Prototyp.** Eine echte Aufnahmefahrt durch eine Zimmerecke, übergeben an pipeline-3d.
-   *Fertig wenn:* daraus ein Modell entsteht — der Beweis, dass beide Stränge zusammenpassen.
+5. **Prototype.** A real capture drive through a corner of a room, handed over to pipeline-3d.
+   *Done when:* a model emerges from it — the proof that both branches fit together.
 
-## Danach, nicht jetzt
+## Afterwards, not now
 
-Objekterkennung mit jetson-inference (D-012) · Fahralgorithmus statt Handsteuerung · Erkennungen pro Bild mitschreiben.
+Object detection with jetson-inference (D-012) · driving algorithm instead of manual control · log detections per image.

@@ -8,15 +8,15 @@ pm-method: kanban
 
 ## Tools & subscriptions
 
-Nur bewährte Projekte: viele Stars oder ein offizielles Entwicklerteam. Lieber wenige gute als viele kleine.
+Only proven projects: many stars or an official development team. Prefer a few good ones over many small ones.
 
-- Brush (ArthurBrussee/brush) — 3DGS-Training, Metal/WGPU, 5,0k ★, Apache-2.0
-- COLMAP (colmap/colmap) — Pose-Schätzung und Entzerrung, 12,6k ★, via Homebrew
-- SuperSplat (playcanvas/supersplat) — Web-Viewer, 9,9k ★, MIT
-- jetson-inference (dusty-nv/jetson-inference) — Objekterkennung auf dem JetBot, 9,0k ★, MIT
-- JetBot (NVIDIA-AI-IOT/jetbot) — Robotersteuerung, 3,3k ★, MIT — liegt als 0.4.3 auf dem Image
-- ffmpeg — nur noch Rückfall und Bildschirmaufnahmen (Stop-and-Go statt Video, D-013)
-- Coolify — Deployment auf dem Lenovo, zurückgestellt
+- Brush (ArthurBrussee/brush) — 3DGS training, Metal/WGPU, 5.0k ★, Apache-2.0
+- COLMAP (colmap/colmap) — pose estimation and undistortion, 12.6k ★, via Homebrew
+- SuperSplat (playcanvas/supersplat) — web viewer, 9.9k ★, MIT
+- jetson-inference (dusty-nv/jetson-inference) — object detection on the JetBot, 9.0k ★, MIT
+- JetBot (NVIDIA-AI-IOT/jetbot) — robot control, 3.3k ★, MIT — resides as 0.4.3 on the image
+- ffmpeg — only fallback and screen captures now (stop-and-go instead of video, D-013)
+- Coolify — deployment on the Lenovo, postponed
 
 ## Style & moral
 
@@ -27,7 +27,7 @@ Nur bewährte Projekte: viele Stars oder ein offizielles Entwicklerteam. Lieber 
      it contradicts — this is current configuration, not a history. Routing of the
      non-preference cases: docs/conventions.md § Profile. -->
 
-- Immer den einfachsten Weg zuerst
-- Lieber ein funktionierender Prototyp als ein perfekter Plan
-- Visualisierung und Präsentierbarkeit priorisieren
-- Keine spekulativen Features oder "für später"-Strukturen
+- Always the simplest path first
+- Prefer a working prototype over a perfect plan
+- Prioritize visualization and presentability
+- No speculative features or "for later" structures

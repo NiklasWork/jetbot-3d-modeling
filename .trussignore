@@ -37,7 +37,7 @@
 .gemini/
 .opencode/
 
-# ── Arbeitsprodukt (D-011) ──────────────────────────────────────────────────
-# Der Code lebt in zwei eigenstaendigen Projekten. Map und doctor pruefen den
-# Workspace, nicht das Produkt.
+# ── Work product (D-011) ────────────────────────────────────────────────────
+# The code lives in two independent projects. Map and doctor check the
+# workspace, not the product.
 repos/

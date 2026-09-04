@@ -1,39 +1,39 @@
 # roboter
 
-Alles, was auf dem JetBot läuft: fahren, aufnehmen, später Objekte erkennen.
-Erzeugt den Bilderordner, den `pipeline-3d` weiterverarbeitet — und funktioniert ohne sie.
+Everything that runs on the JetBot: drive, capture, later detect objects.
+Generates the image folder that `pipeline-3d` processes further — and works without it.
 
-## Zielsystem
+## Target system
 
 | | |
 |---|---|
-| Gerät | Waveshare JetBot, Jetson Nano 4GB |
+| Device | Waveshare JetBot, Jetson Nano 4GB |
 | Image | `jetbot-043_nano-4gb-jp45` — JetBot 0.4.3, JetPack 4.5 |
 | OS | Ubuntu 18.04, **Python 3.6**, CUDA 10.2, TensorRT 7.1 |
-| Zugang | Jupyter im Browser, `http://<jetbot-ip>:8888`, Nutzer/Passwort `jetbot` |
+| Access | Jupyter in the browser, `http://<jetbot-ip>:8888`, user/password `jetbot` |
 
-> **Python 3.6 ist bindend.** Keine dataclasses (3.7), kein Walrus-Operator (3.8),
-> kein `ultralytics`. Der Stack ist bewusst eingefroren — Updates sind für diese
-> Hardware nicht verfügbar, siehe Entscheidung D-008 im Workspace.
+> **Python 3.6 is binding.** No dataclasses (3.7), no walrus operator (3.8),
+> no `ultralytics`. The stack is deliberately frozen — updates are not available for this
+> hardware, see decision D-008 in the workspace.
 
-## Was hier entsteht
+## What is built here
 
-1. **Steuerung** — kommt aus dem Image mit (`teleoperation`, `basic_motion`).
-2. **Aufnahme** — Bilder in einen Ordner schreiben, benannt nach Zeitstempel.
-3. **Objekterkennung** — vortrainiertes SSD-MobileNet über `jetson-inference`,
-   Erkennungen pro Bild mitschreiben. Die Zuordnung zu 3D-Koordinaten passiert
-   **nicht hier**, sondern auf dem Mac aus den COLMAP-Posen.
+1. **Control** — comes with the image (`teleoperation`, `basic_motion`).
+2. **Capture** — write images into a folder, named by timestamp.
+3. **Object detection** — pre-trained SSD-MobileNet via `jetson-inference`,
+   log detections per image. The mapping to 3D coordinates happens
+   **not here**, but on the Mac from the COLMAP poses.
 
-## Stand
+## Status
 
-Roboter ist aufgebaut und geflasht, sonst nichts. Nächster Schritt: booten, ins WLAN
-bringen, `teleoperation`-Notebook öffnen.
+Robot is built and flashed, nothing else. Next step: boot, connect to WiFi,
+open `teleoperation` notebook.
 
-## Grenzen
+## Limitations
 
-- Kein Radencoder, keine IMU — der Roboter kann seinen eigenen Weg nicht zuverlässig
-  mitführen. Die Kamerabahn kommt aus der Rekonstruktion auf dem Mac.
-- Rolling-Shutter-Kamera: Bilder während der Fahrt werden im Innenraum unscharf.
-- Keine Sicherheitsupdates mehr. Gehört ins Heimnetz, nicht ins offene WLAN.
+- No wheel encoders, no IMU — the robot cannot reliably track its own path.
+  The camera trajectory comes from the reconstruction on the Mac.
+- Rolling shutter camera: images during the drive become blurry indoors.
+- No more security updates. Belongs in the home network, not in open WiFi.
 
-Planung, Begründungen und offene Fragen liegen nicht hier, sondern im Truss-Workspace eine Ebene höher.
+Planning, rationales and open questions belong not here, but in the Truss workspace one level higher.

@@ -1,38 +1,38 @@
 ---
-focus: Aus einem Ordner Fotos ein betrachtbares 3D-Modell machen — mit einem Befehl, reproduzierbar
+focus: Turn a folder of photos into a viewable 3D model — with one command, reproducibly
 next:
-  - Paket 3 — COLMAP-Strecke erproben (Vorschlag: an den truck-Bildern gegen die mitgelieferten Posen, statt an Handyfotos)
-  - Paket 4 — Verkettung zu einem Befehl
-  - Paket 5 — Viewer lokal, Versionen pinnen
+  - Package 1 — Make tools executable (colmap, brush, splat-transform)
+  - Package 2 — Reference run with public dataset, measure runtime and thermals
+  - Package 3 — Test COLMAP pipeline on own cell phone photos
 blockers: none
 ---
 
 # Plan pipeline-3d
 
-> Belongs here: der Weg von heute bis zum ersten Prototypen des Mac-Strangs. Not here: Werkzeugbegründungen (state/decisions/), Roboter-Arbeit (context/plan-roboter.md).
+> Belongs here: the path from today to the first prototype of the Mac branch. Not here: tool choice rationales (state/decisions/), robot work (context/plan-roboter.md).
 
-**Prototyp erreicht, wenn:** ein Ordner mit Fotos durch einen Befehl zu einem `.sog` wird, das im Browser navigierbar ist — ohne Roboter, ohne Handarbeit dazwischen.
+**Prototype reached when:** a folder with photos becomes a `.sog` through one command, which is navigable in the browser — without robot, without manual work in between.
 
-Jedes Paket ist einzeln abnehmbar. Kein Paket beginnt, bevor das vorige seine Prüfung besteht.
+Each package can be accepted individually. No package starts before the previous one passes its check.
 
-1. ✅ **Werkzeuge lauffähig.** `brew install colmap`, Brush aus den Quellen bauen, `npx splat-transform` einmal ziehen.
-   *Fertig wenn:* alle drei starten und ihre Version ausgeben.
+1. **Tools executable.** `brew install colmap`, build Brush from source, pull `npx splat-transform` once.
+   *Done when:* all three start and output their version.
 
-2. ✅ **Referenzlauf.** Einen bekannten öffentlichen Datensatz durch Brush schicken, mit Live-Viewer. Laufzeit, Splat-Zahl, CPU-Temperatur und Drosselung mitschreiben.
-   *Fertig wenn:* der Viewer eine erkennbare Szene zeigt und echte Zahlen die Schätzungen aus D-002 ersetzen. → Zahlen in context/messwerte.md; Viewer noch nicht gestartet.
+2. **Reference run.** Send a known public dataset through Brush, with live viewer. Log runtime, splat count, CPU temperature and throttling.
+   *Done when:* the viewer shows a recognizable scene and real numbers replace the estimates from D-002.
 
-3. **COLMAP-Strecke.** Rund 50 Handyfotos einer Schreibtischecke, dann `feature_extractor` → `sequential_matcher` → `mapper` → `image_undistorter`. Bewusst mit dem Handy, damit Aufnahmequalität hier keine Fehlerquelle ist.
-   *Fertig wenn:* über 90 % der Bilder registriert sind und entzerrte Pinhole-Bilder vorliegen.
+3. **COLMAP pipeline.** Around 50 cell phone photos of a desk corner, then `feature_extractor` → `sequential_matcher` → `mapper` → `image_undistorter`. Deliberately with the cell phone, so that capture quality is not a source of error here.
+   *Done when:* over 90% of the images are registered and undistorted pinhole images are available.
 
-4. **Verkettung.** Ein Skript, das aus Paket 3 und Paket 2 eine Strecke macht: Ordner rein, `.ply` raus.
-   *Fertig wenn:* ein einziger Befehl auf einem frischen Ordner durchläuft.
+4. **Chaining.** A script that turns Package 3 and Package 2 into a pipeline: folder in, `.ply` out.
+   *Done when:* a single command runs through on a fresh folder.
 
-5. **Komprimieren und anzeigen.** `.ply` → `.sog`, SuperSplat lokal, Modell laden. Versionen von splat-transform und Viewer festnageln.
-   *Fertig wenn:* das eigene Modell im Browser navigierbar ist.
+5. **Compress and display.** `.ply` → `.sog`, SuperSplat locally, load model. Pin versions of splat-transform and viewer.
+   *Done when:* the own model is navigable in the browser.
 
-6. **Prototyp.** Alles in einem Befehl, im README beschrieben.
-   *Fertig wenn:* jemand anderes es allein aus dem README wiederholen kann.
+6. **Prototype.** Everything in one command, described in the README.
+   *Done when:* someone else can repeat it solely from the README.
 
-## Danach, nicht jetzt
+## Afterwards, not now
 
-Fisheye-Bilder vom Roboter statt Handyfotos · Objektlabels aus den Posen im Modell verorten · gefahrene Bahn als Linie einzeichnen · Ausrollen auf den Lenovo.
+Fisheye images from the robot instead of cell phone photos · 3D placement of object labels from the poses in the model · draw camera trajectory as a line · rollout to the Lenovo.

@@ -36,7 +36,7 @@ Routing policy: which file owns what. Not a file inventory — that is `state/ma
 | AGENTS.md | A body · S blocks | router, this table, rules |
 | README.md | H | human onboarding — not agent context |
 | VISION.md | H+A | problem, idea, principles, constraints |
-| ANWENDUNGSVISION.md | H+A | die Anwendungsvision in Prosa für Menschen — bewusst redundant zu VISION.md und context/architektur.md, auf ausdrückliche Anweisung des Menschen |
+| ANWENDUNGSVISION.md | H+A | the application vision in prose for humans — deliberately redundant to VISION.md and context/architektur.md, on explicit instruction from the human |
 | state/current.md | A | the live snapshot: focus · next · blockers (limits in the file); recently done is `git log`, not a maintained list — see `truss status` |
 | state/decisions/ (on demand) | A | decided decisions, one file per entry (`state/decisions/D-NNN.md`); supersede, never delete — summary row, contents not table-managed. A workspace that still keeps them in one `state/decisions.md` is equally valid and equally checked |
 | state/decisions-index.md (on demand) | S | auto-generated, do not edit: title + status per D-NNN, written by `truss render`. This is what §1 loads every session; a body is opened by its ID |

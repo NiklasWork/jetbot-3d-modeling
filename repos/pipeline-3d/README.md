@@ -1,40 +1,40 @@
 # pipeline-3d
 
-Aus einem Ordner mit Bildern eines Innenraums ein 3D-Gaussian-Splatting-Modell erzeugen und anzeigen.
-Läuft vollständig auf dem MacBook (Apple Silicon). Braucht den Roboter nicht — jeder Ordner mit
-überlappenden Fotos funktioniert.
+Create and display a 3D Gaussian splatting model from a folder of images of an indoor space.
+Runs entirely on the MacBook (Apple Silicon). Does not need the robot — any folder with
+overlapping photos works.
 
-## Was hier passiert
+## What happens here
 
 ```
-Bilder/  →  COLMAP  →  Brush  →  splat-transform  →  SuperSplat
-            Posen +    Training   .ply → .sog        Viewer im
-            Entzerrung (sichtbar) (15-20× kleiner)   Browser
+Images/  →  COLMAP  →  Brush  →  splat-transform  →  SuperSplat
+            poses +    training   .ply → .sog        viewer in
+            undistortion (visible) (15-20× smaller)   browser
 ```
 
-| Schritt | Werkzeug | Ergebnis |
+| Step | Tool | Result |
 |---|---|---|
-| Posen schätzen und entzerren | COLMAP | `sparse/` + entzerrte Pinhole-Bilder |
-| Modell trainieren | Brush | `.ply`, live mitzusehen |
-| Komprimieren | `npx splat-transform` | `.sog` |
-| Anzeigen | SuperSplat | Browser-Viewer |
+| Estimate poses and undistort | COLMAP | `sparse/` + undistorted pinhole images |
+| Train model | Brush | `.ply`, visible live |
+| Compress | `npx splat-transform` | `.sog` |
+| Display | SuperSplat | browser viewer |
 
-## Voraussetzungen
+## Prerequisites
 
 ```bash
 brew install colmap ffmpeg
-# Brush: Rust-Toolchain vorhanden (cargo), Bau nach Anleitung des Projekts
+# Brush: Rust toolchain available (cargo), build according to the project's instructions
 ```
 
-## Stand
+## Status
 
-Noch nichts gebaut. Nächster Schritt ist Stufe 0: Brush mit einem öffentlichen Datensatz
-trainieren und die echte Laufzeit auf dem M4 messen.
+Nothing built yet. Next step is stage 0: train Brush with a public dataset
+and measure the true runtime on the M4.
 
-## Grenzen
+## Limitations
 
-- Eingangsbilder auf höchstens 1080p herunterrechnen — darüber bricht Brush mit `BufferTooBig` ab.
-- Training auf 7.000–10.000 Schritte begrenzen: das MacBook Air hat keinen Lüfter.
-- Unscharfe Bilder sind nicht reparierbar. Was hier hineingeht, entscheidet das Ergebnis.
+- Downscale input images to at most 1080p — above that Brush aborts with `BufferTooBig`.
+- Limit training to 7,000–10,000 steps: the MacBook Air has no fan.
+- Blurry images are not repairable. What goes in here decides the result.
 
-Planung, Begründungen und offene Fragen liegen nicht hier, sondern im Truss-Workspace eine Ebene höher.
+Planning, rationales and open questions belong not here, but in the Truss workspace one level higher.
