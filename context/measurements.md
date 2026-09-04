@@ -66,33 +66,53 @@ Validated by the `base`/`base2` pair above, so these differences are real and no
 | `base` | — | 974 s | — | 25.11 | 1.28 M | 19.1 MiB | 2.13 GiB |
 | `res640` | `--max-resolution 640` | 819 s | −16 % | 25.66 ¹ | 1.1 M | 16.0 MiB | 1.69 GiB |
 | `cap400k` | `--max-splats 400000` | 736 s | −24 % | 24.58 | 400 k | 7.8 MiB | 1.10 GiB |
-| `sh1` | `--sh-degree 1` | 1575 s | **+62 %** | 24.85 | 1.28 M | 19.0 MiB | 1.20 GiB |
+| `sh1` | `--sh-degree 1` | 1575 s ² | +62 % ² | 24.85 | 1.28 M | 19.0 MiB | 1.20 GiB |
 | `fast` | 5000 steps, 800 px, 400 k cap, SH 2 | **289 s** | **−70 %** | 24.37 ¹ | 400 k | **6.8 MiB** | 0.93 GiB |
 
 ¹ Measured against downscaled eval images. PSNR is **not comparable across different `--max-resolution` values** — a smaller target is easier to fit. Only `cap400k` and `sh1` can be read against `base` directly.
+² Cold autotune cache for the 4-coefficient SH layout, inside the timed run. The real cost of the flag is about 6 % — see below.
 
 What this says:
 
 - **Steps are the only lever with a near-linear effect.** Everything else is sublinear: a 3.2× splat cut buys 24 % time, a 2.3× pixel cut buys 16 %.
 - **Splat count governs delivery size, not runtime.** `cap400k` is 2.4× smaller on disk for 24 % less time — and lands under the one-million-splat ceiling PlayCanvas names for mobile devices, which the baseline exceeds.
-- **`--sh-degree 1` is a trap.** 62 % *slower* at identical splat count and resolution, for 0.26 dB. Memory drops as expected, so the parameters really are smaller; the runtime is anomalous. Leading explanation is the shape-keyed autotune cache, cold for the 4-coefficient layout while the run was being timed. Untested — the repeat run was cancelled.
+- **`--sh-degree 1` is not a lever at all.** The 62 % in the table is a cold-cache artefact, not the flag — see the short-run session below. With the cache warm it costs about 6 % runtime and 0.27 dB, and it does not shrink what we actually ship: the `.sog` stays at 19.0 MiB against the baseline's 19.1 MiB, because SOG compresses the higher SH bands away regardless. Only the intermediate `.ply` halves, and that file is not delivered. Leave SH at 2 or 3.
 - **Combined, `fast` gives 3.4× the speed and a third of the delivery size** for roughly 0.7 dB. Do not reach for SH degree below 2 to get there.
+
+## Short-run session — 2026-09-04, 21:49
+
+Machine open, ventilated, in room air. 1000 steps per run, `--eval-every 250`, no export. Question: is `--sh-degree 1` genuinely slower, or was its 62 % a cold cache?
+
+The A-B-A sandwich **discarded its own session**, exactly as intended: back-to-back with no gaps, the two baseline runs came out 39 s and 51 s, 28 % apart against a 3 % threshold. Across five consecutive sub-minute runs the times drifted upward from 33 s to 51 s while load average stayed between 1.7 and 3.0.
+
+**Short runs are more sensitive to thermal state than long ones, not less** — the inverse of what the first version of this protocol assumed. A cold GPU boosts for the first seconds and then settles to its sustained clock; a 16-minute run is almost entirely sustained clock and averages the boost away, which is why `base` and `base2` agree to 1.2 % across 75 minutes. A 40-second run is largely boost phase, and how much of it a run gets depends on what ran immediately before.
+
+Inserting **90 s of idle before each run** removes the effect completely:
+
+| Pair | Order | `base` | `--sh-degree 1` |
+|---|---|---:|---:|
+| Warm-up, no gaps | base first | 33 s | 35 s |
+| Confirmation, 90 s gaps | sh1 first | 33 s | 35 s |
+
+Both orders, both to the second. **The 62 % was the cold autotune cache; the flag itself costs about 6 %** and 0.27 dB at step 1000 (PSNR 21.24 against 20.95), matching the 0.26 dB seen at 8000 steps.
 
 ## Measurement protocol
 
-Long runs under uncontrolled conditions produced two false conclusions in one session — first from background load and a cold cache, then from a laptop that spent part of the series inside a cotton bag. Future measurements follow this instead.
+Three false conclusions came out of this project's measurements before this protocol existed: background load with a cold cache, then a laptop that spent part of a series inside a cotton bag, then a cold cache inside a timed run. Future measurements follow this.
 
 **Physical setup, fixed and stated.** Open, on a hard surface, in room air, never on fabric or in a bag. Power connected. No lid closing, no moving the machine mid-series. If the setup changes, the series is over.
 
-**Software setup.** Quit background applications. Read `sysctl -n vm.loadavg` before starting and abort if the 1-minute figure is above ~2. Log the load average at start and end of every run — the runner already does.
+**Record the load, do not gate on it.** An absolute threshold is the wrong control: with the desktop app running, this machine idles at a load average around 2.5, so any threshold low enough to be meaningful would block every measurement. Log `sysctl -n vm.loadavg` at the start of each run — the runner does — and let the sandwich below catch what matters.
 
-**Short runs, not long ones.** Measure at **2000 steps**, not 8000. The 8000-step curve above is the reference that makes this legitimate: the ordering of configurations and the per-step cost are both established well before step 2000, and a 2000-step run costs about two minutes instead of sixteen. Extrapolate to full length through the curve, do not re-measure it.
+**Idle 90 s before every timed run.** Non-negotiable for runs under a few minutes; this is the single change that took the spread from 28 % to zero. Long runs need it less, but it costs nothing there either.
 
-**Warm the cache per configuration.** Before timing a configuration that changes a tensor shape (`--sh-degree`, `--max-resolution`), run it once for 200 steps and throw the result away. Otherwise the kernel search lands inside the measurement — that is what `sh1` most likely shows.
+**Warm the cache per configuration.** Any configuration that changes a tensor shape (`--sh-degree`, `--max-resolution`) gets one discarded run over the same step range first. The kernel search otherwise lands inside the measurement, which is worth up to 62 %.
 
-**Sandwich every comparison.** Run A, then B, then A again, in one sitting. If the two A runs differ by more than 3 %, discard the whole session rather than explaining the difference. This catches thermal drift, background load and cache effects at once, without needing to identify which one occurred.
+**Sandwich every comparison.** Run A, then B, then A again, in one sitting. If the two A runs differ by more than 3 %, discard the whole session rather than explaining the difference. This catches thermal drift, background load and cache effects at once, without needing to identify which one occurred — and it did.
 
-**Separate what temperature can touch from what it cannot.** PSNR, SSIM, splat counts and file sizes are deterministic at a fixed seed and survive any thermal condition — the `base`/`base2` pair agrees to 0.03 dB. Only durations need this protocol.
+**1000 steps is enough for a comparison.** Splat counts agree to 1.3 % between configurations at step 1000, and dropping the first 250 steps removes dataset loading and startup from the window. Extrapolate to full length through the recorded curve; do not re-measure it.
+
+**Separate what temperature can touch from what it cannot.** PSNR, SSIM, splat counts and file sizes are deterministic at a fixed seed and survive any thermal condition — the `base`/`base2` pair agrees to 0.03 dB. Only durations need any of this.
 
 ## What this corrects in the decisions
 
@@ -109,4 +129,3 @@ Long runs under uncontrolled conditions produced two false conclusions in one se
 ## Open
 
 - **The SfM half is unmeasured.** Every number here starts from poses shipped with the dataset. For the JetBot that step is real work and probably the larger block — `colmap mapper` against `colmap global_mapper` is Package 3.
-- **`sh1`'s slowness has no confirmed mechanism.** A repeat with a warm cache would settle it in about two minutes under the protocol above.
