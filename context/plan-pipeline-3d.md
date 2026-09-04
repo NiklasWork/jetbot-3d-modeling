@@ -1,9 +1,9 @@
 ---
 focus: Aus einem Ordner Fotos ein betrachtbares 3D-Modell machen — mit einem Befehl, reproduzierbar
 next:
-  - Paket 1 — Werkzeuge lauffähig machen (colmap, brush, splat-transform)
-  - Paket 2 — Referenzlauf mit öffentlichem Datensatz, Laufzeit und Thermik messen
-  - Paket 3 — COLMAP-Strecke an eigenen Handyfotos erproben
+  - Paket 3 — COLMAP-Strecke erproben (Vorschlag: an den truck-Bildern gegen die mitgelieferten Posen, statt an Handyfotos)
+  - Paket 4 — Verkettung zu einem Befehl
+  - Paket 5 — Viewer lokal, Versionen pinnen
 blockers: none
 ---
 
@@ -15,11 +15,11 @@ blockers: none
 
 Jedes Paket ist einzeln abnehmbar. Kein Paket beginnt, bevor das vorige seine Prüfung besteht.
 
-1. **Werkzeuge lauffähig.** `brew install colmap`, Brush aus den Quellen bauen, `npx splat-transform` einmal ziehen.
+1. ✅ **Werkzeuge lauffähig.** `brew install colmap`, Brush aus den Quellen bauen, `npx splat-transform` einmal ziehen.
    *Fertig wenn:* alle drei starten und ihre Version ausgeben.
 
-2. **Referenzlauf.** Einen bekannten öffentlichen Datensatz durch Brush schicken, mit Live-Viewer. Laufzeit, Splat-Zahl, CPU-Temperatur und Drosselung mitschreiben.
-   *Fertig wenn:* der Viewer eine erkennbare Szene zeigt und echte Zahlen die Schätzungen aus D-002 ersetzen.
+2. ✅ **Referenzlauf.** Einen bekannten öffentlichen Datensatz durch Brush schicken, mit Live-Viewer. Laufzeit, Splat-Zahl, CPU-Temperatur und Drosselung mitschreiben.
+   *Fertig wenn:* der Viewer eine erkennbare Szene zeigt und echte Zahlen die Schätzungen aus D-002 ersetzen. → Zahlen in context/messwerte.md; Viewer noch nicht gestartet.
 
 3. **COLMAP-Strecke.** Rund 50 Handyfotos einer Schreibtischecke, dann `feature_extractor` → `sequential_matcher` → `mapper` → `image_undistorter`. Bewusst mit dem Handy, damit Aufnahmequalität hier keine Fehlerquelle ist.
    *Fertig wenn:* über 90 % der Bilder registriert sind und entzerrte Pinhole-Bilder vorliegen.
