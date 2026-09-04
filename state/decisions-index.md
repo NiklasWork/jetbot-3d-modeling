@@ -5,9 +5,14 @@
 
 - **D-001** — Phasenloser Truss-Modus für laufende Entwicklung
 - **D-002** — Brush als primäre 3DGS-Training-Engine
-- **D-003** (challenged by OD-001) — MASt3R als Pose-Schätzer statt COLMAP
+- **D-003** (superseded by D-009) — MASt3R als Pose-Schätzer statt COLMAP
 - **D-004** — SuperSplat als Web-Viewer auf Coolify
-- **D-005** (challenged by OD-001) — OpenCV Fisheye-Kalibrierung und Entzerrung als Pflicht-Vorschritt
+- **D-005** (superseded by D-010) — OpenCV Fisheye-Kalibrierung und Entzerrung als Pflicht-Vorschritt
 - **D-006** — Manuelle Steuerung als Pflicht, Fahralgorithmus als Ausbau
 - **D-007** — MacBook rechnet, Lenovo hostet nur
 - **D-008** — Roboter-Software-Stack bleibt wie geliefert
+- **D-009** — COLMAP als Pose-Schätzer
+- **D-010** — Entzerrung durch COLMAP statt Schachbrett-Kalibrierung
+- **D-011** — Zwei eigenständige Repos unter repos/
+- **D-012** — Objekterkennung auf dem Roboter, 3D-Verortung auf dem Mac
+- **D-013** — Stop-and-Go mit skriptgesteuerter Aufnahme

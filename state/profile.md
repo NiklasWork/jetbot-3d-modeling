@@ -8,13 +8,15 @@ pm-method: kanban
 
 ## Tools & subscriptions
 
-- Brush (ArthurBrussee/brush) — 3DGS Training, Metal/WGPU, MIT
-- MASt3R (naver/mast3r / mlx-mast3r) — Pose-Schätzung, CC BY-NC-SA 4.0
-- COLMAP — SfM Fallback, via Homebrew
-- SuperSplat (playcanvas/supersplat) — Web-Viewer, MIT
-- ffmpeg — Frame-Extraktion
-- Coolify — VPS Deployment
-- Waveshare JetBot SDK — Robotersteuerung
+Nur bewährte Projekte: viele Stars oder ein offizielles Entwicklerteam. Lieber wenige gute als viele kleine.
+
+- Brush (ArthurBrussee/brush) — 3DGS-Training, Metal/WGPU, 5,0k ★, Apache-2.0
+- COLMAP (colmap/colmap) — Pose-Schätzung und Entzerrung, 12,6k ★, via Homebrew
+- SuperSplat (playcanvas/supersplat) — Web-Viewer, 9,9k ★, MIT
+- jetson-inference (dusty-nv/jetson-inference) — Objekterkennung auf dem JetBot, 9,0k ★, MIT
+- JetBot (NVIDIA-AI-IOT/jetbot) — Robotersteuerung, 3,3k ★, MIT — liegt als 0.4.3 auf dem Image
+- ffmpeg — nur noch Rückfall und Bildschirmaufnahmen (Stop-and-Go statt Video, D-013)
+- Coolify — Deployment auf dem Lenovo, zurückgestellt
 
 ## Style & moral
 
