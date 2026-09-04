@@ -24,7 +24,7 @@ Each package can be accepted individually. No package starts before the previous
 3. **COLMAP pipeline.** `feature_extractor` → `sequential_matcher` → mapper → `image_undistorter`. Run `mapper` and `global_mapper` on the same images and keep the faster one that still registers everything.
    *Done when:* over 90% of the images are registered, undistorted pinhole images are available, and both mapper runtimes are in context/measurements.md.
 
-4. **Chaining.** A script that turns Package 3 and Package 2 into a pipeline: folder in, `.ply` out.
+4. **Chaining.** A script that turns Package 3 and Package 2 into a pipeline: folder in, `.ply` out. Use the measured fast preset, not the Brush defaults — see the variant table in context/measurements.md.
    *Done when:* a single command processes a fresh folder end-to-end.
 
 5. **Compress and display.** `.ply` → `.sog`, viewer, load model. Pin versions.
