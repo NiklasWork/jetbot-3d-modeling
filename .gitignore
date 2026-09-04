@@ -1,0 +1,22 @@
+.truss/out/
+
+# Engine kept aside by `truss upgrade` as a rollback copy, and its staging
+# directory — both are engine copies, never project content.
+.truss.bak-*/
+.truss.incoming/
+
+# OS / editor junk
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+
+# Host-agent config. Skills and commands you write are project content — keep
+# them tracked so the team gets them. Only the per-machine settings are local.
+.claude/settings.local.json
+.cursor/settings.local.json
+
+# Secrets
+.env
+.env.*
+!.env.example

@@ -1,0 +1,13 @@
+{
+  "name": "truss-workspace",
+  "version": "0.1.0",
+  "description": "A project managed with Truss.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "doctor": "node .truss/bin/truss.mjs doctor"
+  }
+}

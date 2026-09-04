@@ -1,0 +1,38 @@
+# .trussignore — paths truss should NOT treat as workspace content.
+#
+# The project map (state/map.md) and `truss doctor` scan the workspace tree. Any
+# path matched here is excluded from BOTH — it will not appear in the map and
+# will not raise findings. This is the sanctioned way to keep foreign / bulk data
+# inside the project without drowning the map and doctor in noise.
+#
+# Typical things to exclude: probe/raw data supplied for analysis, vendored
+# datasets, ML checkpoints, build artifacts, VM images, copied app-support dirs.
+#
+# Syntax is gitignore-style: `#` comments, `!` to re-include, a trailing `/` for
+# directories, a leading `/` to anchor to the root, and * ? ** globs.
+# truss ALSO honours your .gitignore by default, so anything already ignored by
+# git usually needs no entry here (set TRUSS_NO_GITIGNORE=1 to opt out of that).
+#
+# Agents: when you copy in bulk/foreign data that isn't part of the project's
+# content, add its path here so the map and doctor stay focused on real work.
+#
+# Examples (uncomment / adapt):
+# data/raw/
+# datasets/
+# *.tmp
+# /vendor-dump/
+
+# ── Host-agent territory (active) ───────────────────────────────────────────
+# Your AI tool discovers its own skills, commands and settings in its own
+# directory — that is where a SKILL.md goes, not into a Truss-owned path.
+# Truss does not manage them and must not report on them; git still tracks them
+# by default, so a skill you write stays shareable. Add your tool's dir if it is
+# missing here.
+# `.agents/skills/` is the cross-client convention (Codex reads it; the Agent
+# Skills spec leaves the location open) — it is host territory like the rest.
+.agents/
+.claude/
+.cursor/
+.codex/
+.gemini/
+.opencode/

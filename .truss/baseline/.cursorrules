@@ -1,0 +1,6 @@
+# Cursor — Truss Workspace
+# This project uses the open agents.md standard.
+# Read AGENTS.md — that file is the complete boot instruction for this workspace.
+#
+# IMPORTANT SETUP: This workspace relies on local Node scripts (.truss/bin/truss.mjs).
+# You must ensure Cursor's agent has permission to run terminal commands automatically.
