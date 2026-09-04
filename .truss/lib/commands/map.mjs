@@ -235,10 +235,26 @@ export async function generateMapContent(root, mdFilesInput) {
         const descMatch = topContent.match(/^>\s+(.+)$/m);
         if (descMatch) description = descMatch[1].trim();
 
+        // A RELATIVE link inside a copied description is a link to nowhere: it was
+        // written against its own file's directory and lands here resolved against
+        // state/. README.de.md's "die deutsche Übersetzung der [englischen
+        // README](README.md)" became `state/README.md` and made RF-01 report an
+        // ERROR on a freshly cloned, freshly `init`-ed Truss repo — the Quickstart
+        // path, in a file no one can fix by hand because it is generated. Keep the
+        // link TEXT, drop the target; absolute and external links survive, since
+        // those still point where they meant to.
+        const flattenLocalLinks = (s) => s.replace(
+          /\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
+          (whole, text, href) =>
+            /^(?:[a-z][a-z0-9+.-]*:|\/|#)/i.test(href) ? whole : text,
+        );
+        title = flattenLocalLinks(title);
+        description = flattenLocalLinks(description);
+
         // Escape pipe characters to prevent Markdown table injection
         title = title.replace(/\|/g, '&#124;');
         description = description.replace(/\|/g, '&#124;');
-        
+
         // Strip newlines to prevent markdown breakage
         title = title.replace(/[\r\n]/g, ' ');
         description = description.replace(/[\r\n]/g, ' ');

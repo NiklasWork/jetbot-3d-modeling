@@ -10,17 +10,19 @@ Für ein Uni-Robotik-Projekt (Gruppenarbeit, Präsentation vor dem Kurs) braucht
 
 Ein Waveshare JetBot nimmt Video eines Raums auf. Auf dem MacBook M4 werden daraus Kameraposen geschätzt und ein 3DGS-Modell trainiert — der Trainingsfortschritt ist live sichtbar (Brush --with-viewer). Das fertige Modell wird komprimiert und als interaktiver Web-Viewer bereitgestellt.
 
-Staged-Ansatz: Aufnehmen → Übertragen → Verarbeiten (mit sichtbarem Training) → Web-Viewer. Live-Streaming vom JetBot während der Fahrt ist Stretch-Goal, nicht MVP.
+Gefahren wird manuell, ein Fahralgorithmus ist optionaler Ausbau (D-006). Staged-Ansatz: Aufnehmen → Übertragen → Verarbeiten (mit sichtbarem Training) → Web-Viewer. Live-Streaming vom JetBot während der Fahrt ist Stretch-Goal, nicht MVP.
 
 ## Principles
 
 - Minimal bauen, dann erweitern — erst der funktionierende Prototyp, dann Features
 - Visualisierung ist Pflicht — sichtbarer Fortschritt bei jedem Schritt
 - Schnelle kleine Erfolge statt langer Planungszyklen
+- Spaßprojekt — die Optik zählt: ein Ergebnis, das cool aussieht, schlägt ein vollständiges
+- Funktional statt Fassade — nichts vorführen, was nicht wirklich läuft
 
 ## Constraints
 
-- Hardware: Waveshare JetBot (Jetson Nano, IMX219 160° Kamera, noch nicht aufgebaut), MacBook Air M4 24GB (kein Lüfter), VPS 30GB RAM CPU-only
+- Hardware: Waveshare JetBot (Jetson Nano 4GB, IMX219 160° Kamera, aufgebaut und geflasht), MacBook Air M4 24GB (kein Lüfter), Lenovo-Homeserver 35GB RAM CPU-only mit Coolify — entfernt, hohe Latenz, ~9 MBit/s Upload
 - Kein NVIDIA-GPU-Server — alle ML-Workloads müssen auf Apple Silicon / Metal laufen
 - Team arbeitet via Agentic Engineering (AI-gestützte Entwicklung über diesen Kanal)
 - Keine feste Deadline — Uni-Gruppenarbeit

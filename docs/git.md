@@ -27,10 +27,17 @@ Keep the subject line under 72 characters. Body is optional; use it for breaking
 
 - After each logical unit of work (a decision, a completed task, a phase advance).
 - Never in the middle of a refactor — leave the tree clean.
+- **Stage by path.** `git commit -- <the paths you changed>` commits exactly those paths — verified: it leaves out a file another session has already *staged* in the shared index. A pathless `git add -A` / `git add .` takes whatever else is in the tree, including work that has not been reviewed yet. `truss status` names the paths that were already uncommitted when your session began.
 - With `auto-commit: suggest`, the agent proposes the message; you run `git commit`.
 - Without an `auto-commit` directive (default), commit behaviour follows your host agent's own rules.
 
 The agent only runs `git commit` itself when `auto-commit: on` is set.
+
+## Several sessions in one tree
+
+Two agent sessions in the same working tree share one index and one HEAD. `truss status` reports what it can see — how many sessions are live, which paths were already uncommitted when yours began, and what moved since your last run.
+
+**`.git/index.lock` is not damage.** Concurrent git commands do not corrupt anything; the loser fails loudly with `Unable to create '.git/index.lock': File exists`. Git's own message then suggests removing the file by hand — that advice is written for one person at one machine. With another session in the tree, deleting the lock destroys the other process's write. Wait a couple of seconds and repeat your command instead; after three tries, say so and continue without committing.
 
 ## Overlay git
 

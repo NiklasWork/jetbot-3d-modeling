@@ -61,6 +61,10 @@ const DISK_EXCLUDE = new Set([
   'state/decisions.md',
   'LICENSE',
   '.gitignore',
+  // Same class as .gitignore: a git system file, not workspace content. Its
+  // absence here made every adopter whose repo has one — most of them — carry a
+  // permanent ST-02, including anyone who ran `init` inside the Truss repo.
+  '.gitattributes',
   '.trussignore',
   '.prettierrc',
   '.env.example',
@@ -169,6 +173,7 @@ export async function run(ctx) {
   knownPaths.add('.github/');       // parent dir of copilot stub
   knownPaths.add('LICENSE');
   knownPaths.add('.gitignore');
+  knownPaths.add('.gitattributes');
   knownPaths.add('.trussignore');
   knownPaths.add('.prettierrc');
   knownPaths.add('.env.example');
@@ -229,11 +234,23 @@ export async function run(ctx) {
     if (knownPaths.has(diskRel) || knownPaths.has(relNoSlash)) continue;
     if (knownPaths.has(relNoSlash + '/')) continue;
 
+    // The summary-row escape is named here on purpose. Deriving knownPaths only
+    // upward (a row registers its parents, never its children) means a new
+    // directory can otherwise be cleared only one row per file — the file
+    // inventory the §2 table's own preamble rules out. The way around it existed
+    // but was undiscoverable: it is spelled by SUMMARY_DIRS, by '(on demand)' in
+    // the path cell, or by the words 'summary row' in the purpose cell, and none
+    // of the three was written down where someone reading this finding would
+    // meet it.
+    const owner = relNoSlash.includes('/') ? relNoSlash.split('/')[0] + '/' : relNoSlash;
     findings.push({
       id: 'ST-02', severity: 'W',
       file: diskRel,
       message: `new file not yet noted in the §2 structure table — the agent will map it during normal work`,
-      fix: `No action needed. '${relNoSlash}' will be added to the §2 table next time the agent updates it, or add it yourself if you like.`,
+      fix: `No action needed. '${relNoSlash}' will be added to the §2 table next time the agent updates it, or add it yourself if you like.`
+        + (relNoSlash.includes('/')
+            ? ` If '${owner}' is a directory whose contents should not be listed one by one, make its §2 row a summary row instead — write 'summary row' in that row's Purpose cell, or mark the path '(on demand)'. doctor then checks '${owner}' itself and stays quiet about what is inside it.`
+            : ` A directory row can be made a summary row — 'summary row' in its Purpose cell, or '(on demand)' on the path — so its contents are not table-managed individually.`),
     });
   }
 

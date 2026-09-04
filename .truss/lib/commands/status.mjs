@@ -4,8 +4,12 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import { loadWorkspace } from '../workspace.mjs'
 import { listDomains } from '../domains.mjs'
-import { branchReport, recentCommits } from '../git.mjs'
+import { branchReport, recentCommits, fileLineAges, gitChangedPaths } from '../git.mjs'
+import { observe, presenceLines, indexLockAge } from '../presence.mjs'
 import { decisionFilesFrom } from '../decisions-index.mjs'
+import { runAllChecks } from '../run-checks.mjs'
+import { CHECKBOX_ANY, CHECKBOX_DONE, ignoredLines } from '../md.mjs'
+import { classById, fileForClass } from '../schema.mjs'
 
 const RECENT_COMMITS_MAX = 5
 // Same 60-char cutoff other status-adjacent messages use (checks/sy.mjs,
@@ -43,19 +47,31 @@ export async function runStatus(root, argv) {
   const position = ordered.indexOf(currentPhaseId) + 1
   const total = ordered.length
   
-  let doctorSummary = 'unknown (run `truss doctor` to generate)'
+  // Health is MEASURED here, not remembered. It used to be read from
+  // .truss/out/doctor.json — a gitignored cache with no timestamp on screen, so
+  // a fresh clone reported "unknown" until someone happened to run `doctor`, and
+  // an existing report could contradict a doctor run from a minute earlier
+  // without anything saying so. In the one field whose whole job is to be
+  // trusted. The checks are re-run instead, off the workspace this command has
+  // already loaded: ≈60 ms on top of a command a human runs once per session.
+  // Nothing is written — `doctor` owns the report files and the detail output.
+  // Exit codes are deliberately unchanged: `doctor` is the gate, `status` is the
+  // briefing, and a CI step pinned to `status` must not start failing on a
+  // warning it never saw before.
+  let doctorSummary
   try {
-    const docPath = path.join(root, '.truss', 'out', 'doctor.json')
-    const docStr = await fs.readFile(docPath, 'utf8')
-    const doc = JSON.parse(docStr)
-    const s = doc.summary
+    const { errors, warnings, infos } = await runAllChecks(ctx)
     const useColor = !!process.stdout.isTTY
-    if (s) {
-       if ((s.errors || 0) > 0) doctorSummary = useColor ? `\x1b[31m${s.errors} errors\x1b[0m, ${s.warnings} warnings` : `${s.errors} errors, ${s.warnings} warnings`
-       else if ((s.warnings || 0) > 0) doctorSummary = useColor ? `\x1b[33m${s.warnings} warnings\x1b[0m, ${s.infos} infos` : `${s.warnings} warnings, ${s.infos} infos`
-       else doctorSummary = useColor ? '\x1b[32mAll checks passed\x1b[0m' : 'All checks passed'
-    }
-  } catch (e) {}
+    const hint = (errors.length + warnings.length + infos.length) > 0 ? ' — `truss doctor` for detail' : ''
+    const n = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`
+    if (errors.length > 0)        doctorSummary = (useColor ? `\x1b[31m${n(errors.length, 'error')}\x1b[0m, ${n(warnings.length, 'warning')}` : `${n(errors.length, 'error')}, ${n(warnings.length, 'warning')}`) + hint
+    else if (warnings.length > 0) doctorSummary = (useColor ? `\x1b[33m${n(warnings.length, 'warning')}\x1b[0m, ${n(infos.length, 'info')}` : `${n(warnings.length, 'warning')}, ${n(infos.length, 'info')}`) + hint
+    else if (infos.length > 0)    doctorSummary = (useColor ? `\x1b[32mAll checks passed\x1b[0m, ${n(infos.length, 'info')}` : `All checks passed, ${n(infos.length, 'info')}`) + hint
+    else                          doctorSummary = useColor ? '\x1b[32mAll checks passed\x1b[0m' : 'All checks passed'
+  } catch (err) {
+    // A health line that lies is worse than one that admits it cannot look.
+    doctorSummary = `could not be measured (${err?.message || err}) — run \`truss doctor\``
+  }
 
   const useColorGlobal = !!process.stdout.isTTY
   const boldPrefix = useColorGlobal ? '\x1b[1m' : ''
@@ -121,6 +137,16 @@ export async function runStatus(root, argv) {
     console.log(`  Branch:  ${line}`)
   }
 
+  // Parallel sessions — who else is working in this tree, and what moved since
+  // this session last looked (D-101). Like the branch line above, the live git
+  // read belongs HERE, in the command layer, so the doctor checks stay pure.
+  //
+  // Reports only; it never gates and never changes the exit code. Deliberately
+  // silent for a single session in a quiet tree: a line that shows up on every
+  // run stops being read, and then it is worse than no line at all.
+  const parallel = await parallelLines(root, useColorGlobal)
+  for (const l of parallel) console.log(l)
+
   // Domain register — generated, never stored. AGENTS.md §1 step 6 tells an
   // agent to open "the one domain file your task belongs to", and until now
   // nothing said cheaply *which* files those are. This block answers it from
@@ -144,6 +170,14 @@ export async function runStatus(root, argv) {
       console.log(`${label} ${c.sha} ${subject}`)
     }
   }
+
+  // Open human todos — the actions only the human can take. Same argument as the
+  // Open block below, and the same gap it was built to close: an HT entry sat in
+  // a file that nothing reads out, so nothing brought it back into view once the
+  // session that wrote it had ended. No age is shown because the class carries no
+  // date field; making it visible is what the median-38-day-old entry needed, not
+  // a number.
+  for (const l of await humanTodoLines(ctx, root, now)) console.log(l)
 
   // Open decisions — questions parked on the human's desk. status is the canonical
   // session-start command (§4), so this is the one place that guarantees a waiting
@@ -194,6 +228,91 @@ function domainLines(ctx, now) {
   }
   if (ordered.length > DOMAINS_SHOWN_MAX) {
     out.push(`           … and ${ordered.length - DOMAINS_SHOWN_MAX} more in context/ (full list: state/map.md)`)
+  }
+  return out
+}
+
+const HT_SHOWN_MAX = 5
+// Same 60-char cutoff the other status blocks use.
+const HT_TEXT_MAX = 60
+
+/**
+ * Render the `ToDo:` block: the OPEN entries of HUMAN-TODOS.md.
+ * Checked-off entries are working memory on their way to the archive (SY-07) and
+ * are not shown. Silent when nothing is open.
+ * @returns {string[]}
+ */
+async function humanTodoLines(ctx, root, now) {
+  const cls = classById(ctx.schema?.classes, 'HT')
+  const ht = fileForClass(ctx, cls)
+  if (!cls || !ht) return []
+
+  // `- [ ] HT-NNN — …`; the checkbox fragments are shared with lib/md.mjs so
+  // this cannot disagree with SY-07 about what "done" looks like (see D-046),
+  // and the ID comes from the class so renaming it in the schema keeps this
+  // pointed at the entries instead of switching the block off.
+  //
+  // WHY THE ID IS PART OF THE MATCH. An entry carries an indented body — steps
+  // and two labels (docs/conventions.md) — and a step may well be a checkbox.
+  // Matching any `- [ ]` line in the file would list every sub-step of one
+  // entry as its own open todo, which is the block's whole point inverted: the
+  // human's queue would grow with the detail written into it.
+  const anyRe  = new RegExp(`^\\s*[-*]\\s+${CHECKBOX_ANY}\\s+(${cls.id}-\\d{3}\\b.*)$`)
+  const doneRe = new RegExp(`^\\s*[-*]\\s+${CHECKBOX_DONE}\\s+${cls.id}-\\d{3}\\b`)
+
+  // Fenced and commented-out lines are examples, not work — the same rule SY-07
+  // applies to the same file. Without it a documented `- [ ] HT-NNN — …` inside a
+  // code block would be listed here as an open todo on every session start.
+  const fenced = ignoredLines(ht.lines)
+  const open = []
+  for (const [i, line] of ht.lines.entries()) {
+    if (fenced.has(i)) continue
+    if (doneRe.test(line)) continue
+    const m = line.match(anyRe)
+    if (m && m[1].trim()) open.push({ text: m[1].trim(), line: i + 1 })
+  }
+  if (open.length === 0) return []
+
+  // How long each entry has sat untouched, from one `git blame` over the file.
+  // Only reached when something is actually open, because blame costs ~70 ms and
+  // most workspaces have nothing waiting. An empty map (no git, no checkout,
+  // untracked file) simply means no ages are printed — never an error.
+  const ages = await fileLineAges(root, ht.relPath)
+  const idleDays = (entry) => {
+    const at = ages.get(entry.line)
+    return at == null ? null : Math.max(0, Math.floor((now - at) / 86_400_000))
+  }
+
+  // Longest-idle first. The block is a nudge, and the entry nobody has touched
+  // in six weeks is the one it exists for — so it must never be the one the
+  // HT_SHOWN_MAX cut drops. Entries without an age keep file order behind the
+  // dated ones rather than sorting as if they were fresh.
+  const ordered = [...open].sort((a, b) => {
+    const da = idleDays(a), db = idleDays(b)
+    if (da == null && db == null) return a.line - b.line
+    if (da == null) return 1
+    if (db == null) return -1
+    return db - da || a.line - b.line
+  })
+
+  const out = []
+  for (const [n, entry] of ordered.slice(0, HT_SHOWN_MAX).entries()) {
+    const label = n === 0 ? '  ToDo:   ' : '          '
+    // The entry title is written bold so the file reads as a task with a body
+    // below it; the terminal has no bold here, so the markers would be four
+    // stray asterisks on the session-start screen. Stripped before the cut, so
+    // the 60 characters are 60 the human actually sees.
+    const text = entry.text.replace(/\*\*/g, '')
+    const short = text.length > HT_TEXT_MAX ? text.slice(0, HT_TEXT_MAX - 3) + '…' : text
+    const days = idleDays(entry)
+    // `idle`, not an age: blame reports the last commit that TOUCHED the line,
+    // so re-wording an entry restarts its clock. The OD block one section below
+    // prints a real age from `Opened:` — two identical-looking numbers meaning
+    // different things is exactly the silent wrongness worth one extra word.
+    out.push(`${label} ${short}${days == null ? '' : `  (idle ${days}d)`}`)
+  }
+  if (open.length > HT_SHOWN_MAX) {
+    out.push(`           … and ${open.length - HT_SHOWN_MAX} more in ${ht.relPath}`)
   }
   return out
 }
@@ -254,4 +373,39 @@ function openDecisionLines(ctx, now, useColor) {
 async function pathExists(absPath) {
   try { await fs.access(absPath); return true }
   catch { return false }
+}
+
+/**
+ * The `Parallel:` block — presence and journal, rendered for `truss status`.
+ *
+ * Everything git-shaped stays in this command layer (same reason as the branch
+ * line): the check engine is hermetic and must not learn to run git.
+ *
+ * Never throws and never changes the exit code. Returns [] when there is
+ * nothing to say, which is the normal case for a single session.
+ *
+ * @returns {Promise<string[]>} lines to print
+ */
+async function parallelLines(root, useColor) {
+  try {
+    // The workspace repo — the tree whose index and HEAD the sessions share.
+    const changed = await gitChangedPaths(root)
+    const head = await recentCommits(root, 1)
+    const obs = await observe(root, {
+      head: head.ok ? (head.commits[0]?.sha ?? null) : null,
+      dirty: changed.ok ? changed.paths : [],
+    })
+    const lines = presenceLines(obs, {
+      lockAgeMs: await indexLockAge(root),
+      gitAvailable: changed.ok,
+    })
+    if (lines.length === 0) return []
+
+    const yel = useColor ? '\x1b[33m' : '', rst = useColor ? '\x1b[0m' : ''
+    return lines.map((l, i) =>
+      i === 0 ? `  ${yel}Parallel:${rst} ${l}` : `           ${l}`)
+  } catch {
+    // A presence layer that can break `truss status` would be worse than none.
+    return []
+  }
 }

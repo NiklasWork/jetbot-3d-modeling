@@ -29,7 +29,12 @@ export const MANIFEST_REL = 'MANIFEST.sha256'
 // rsync already uses (`--exclude /out/ --exclude /prompts/custom/`), so a
 // workspace kept in sync by that rsync verifies clean against the manifest it
 // receives.
-const EXCLUDED_RELS = new Set(['out', 'prompts/custom', MANIFEST_REL])
+/** Paths under the engine dir the manifest never hashes. Exported because the
+ *  Forge release gate has to exempt exactly these and must not re-type them:
+ *  a gate that judges by a second copy of the rule drifts from the rule it
+ *  guards. It did — the gate aborted a release over `.truss/out/doctor.json`,
+ *  a file the manifest never looks at. */
+export const EXCLUDED_RELS = new Set(['out', 'prompts/custom', MANIFEST_REL])
 
 /**
  * Every regular file under `dir`, as POSIX-separated paths relative to it.

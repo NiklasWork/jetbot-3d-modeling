@@ -7,7 +7,7 @@ CLI, and the agent's behaviour all follow from the same few ideas.
 
 Everything a project knows lives in plain Markdown. There is no database and no
 hidden state. If you want to know what the project has decided, you open
-`state/decisions.md`. If you want to change it, you edit the file. The CLI never
+`state/decisions/`. If you want to change it, you edit the file. The CLI never
 owns the truth — it only reads these files, checks that they agree with each
 other, and reports what it finds. This is what makes Truss portable, diffable,
 and free of lock-in: a workspace is just a folder of text.
@@ -183,7 +183,7 @@ workspace was changed without running the CLI.
 | Missing command | Manual fallback |
 |---|---|
 | `doctor` | inspect touched files and disclose that mechanical validation did not run |
-| `render` | edit `state/phases.md` and `state/decisions.md` only; the phase block and `state/decisions-index.md` may be stale until CLI returns — say so, and read the decision bodies meanwhile |
+| `render` | edit `state/phases.md` and `state/decisions/` only; the phase block and `state/decisions-index.md` may be stale until CLI returns — say so, and read the decision bodies meanwhile |
 | `set` | do not hand-edit generated preferences; leave the change as a human todo |
 | `map` | use existing domain files directly; `state/map.md` may be stale |
 

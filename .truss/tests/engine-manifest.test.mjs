@@ -288,3 +288,26 @@ describe('engine-manifest: filenames a line-based format cannot represent', () =
     assert.deepEqual(await verifyEngine(dir), { modified: [], missing: [], extra: [], unreadable: [] })
   })
 })
+
+// ── Engine sources must stay text ───────────────────────────────────────────
+// lib/severity.mjs carried a literal NUL byte from the commit that introduced
+// dedupeFindings until 2026-09-02. It ran fine — and git classified the whole
+// module as binary, so no diff of it was ever shown in review, for every release
+// in between. A stray control byte in a source file is invisible in exactly the
+// place a reviewer would catch it, so it is asserted mechanically instead.
+describe('engine source files contain no stray control bytes', () => {
+  const ENGINE_ROOT = path.join(fileURLToPath(import.meta.url), '..', '..')
+  it('every shipped .mjs is free of NUL', async () => {
+    const dirs = ['lib', 'checks', 'bin', 'tests']
+    const offenders = []
+    for (const dir of dirs) {
+      const abs = path.join(ENGINE_ROOT, dir)
+      for (const entry of await fs.readdir(abs, { recursive: true, withFileTypes: true })) {
+        if (!entry.isFile() || !entry.name.endsWith('.mjs')) continue
+        const p = path.join(entry.parentPath ?? entry.path, entry.name)
+        if ((await fs.readFile(p)).includes(0)) offenders.push(path.relative(ENGINE_ROOT, p))
+      }
+    }
+    assert.deepEqual(offenders, [], 'these files would be treated as binary by git')
+  })
+})

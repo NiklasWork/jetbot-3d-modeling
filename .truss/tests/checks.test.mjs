@@ -165,6 +165,19 @@ describe('SY-03 entry grammar', () => {
     assert.equal(ids(await sy.run(ctxOf({ 'HUMAN-TODOS.md': file(bad) })), 'SY-03').length, 1)
     assert.equal(ids(await sy.run(ctxOf({ 'HUMAN-TODOS.md': file(good) })), 'SY-03').length, 0)
   })
+  it('reads an HT entry body as body, not as more entries', async () => {
+    // An entry carries indented steps and labels (docs/conventions.md), and a
+    // step may well name another entry. Reading those lines as entries would
+    // raise a warning whose only "fix" is deleting the instruction.
+    const body = '# Human ToDos\n\n- [ ] HT-001 — **rotate the key**\n\n'
+      + '  1. do it before HT-002 goes out\n\n'
+      + '  **Background:** HT-002 waits on this\n'
+    assert.equal(ids(await sy.run(ctxOf({ 'HUMAN-TODOS.md': file(body) })), 'SY-03').length, 0)
+    // An indented mention belonging to no entry is still prose in the entry
+    // file — the malformed entry the check exists for.
+    const stray = '# Human ToDos\n\n  HT-001 — written as prose, indented\n'
+    assert.equal(ids(await sy.run(ctxOf({ 'HUMAN-TODOS.md': file(stray) })), 'SY-03').length, 1)
+  })
   it('flags an OD entry missing Opened and an unnumbered entry, passes a complete one', async () => {
     const good        = `# Open Decisions\n\n## OD-001 — Should we X?\n\nOpened: 2026-06-01\nOptions:\n- A: do X — ships this week +fast / –rough edges\n- B: skip X (recommended) — wait for the rewrite +clean / –slower\nTrade-offs: x\nLeaning: B\n`
     const missingF    = `# Open Decisions\n\n## OD-001 — Should we X?\n\nLeaning: a\n`
@@ -933,5 +946,299 @@ describe('SY-08 ritual drift', () => {
     const f = await sy.run(await ctxFor(root))
     assert.equal(ids(f, 'SY-08').length, 0)
     await fs.rm(root, { recursive: true, force: true })
+  })
+})
+
+// ── SY-13 ────────────────────────────────────────────────────────────────────
+// The direction doctor was blind in. SY-06 catches a settled entry that stayed
+// behind; nothing caught a live dependency edge pointing AT one, so a plan could
+// read "blocked by HT-022" for weeks after HT-022 was ticked off — and `truss
+// status` carried that line into the next session's opening while `doctor` said
+// "all checks passed".
+describe('SY-13 dependency edges onto settled entries', () => {
+  const CLOSER = '# Decisions\n\n## D-007 — Pick a queue\n\nDate: 2026-01-01\nCloses: OD-004\nDecision: SQS\nRationale: cheaper\nConsequences: none\n'
+
+  it('flags a blockers: entry naming an OD that a Closes: line already closed', async () => {
+    const current = '# Current\n\nfocus: x\nnext:\n  - ship\nblockers:\n  - waiting on OD-004\n'
+    const f = ids(await sy.run(ctxOf({
+      'state/current.md': file(current),
+      'state/decisions.md': file(CLOSER),
+    })), 'SY-13')
+    assert.equal(f.length, 1)
+    assert.match(f[0].message, /OD-004/)
+    assert.match(f[0].message, /already settled/)
+    assert.equal(f[0].file, 'state/current.md')
+  })
+
+  it('flags the same edge in a next: entry, and reads the inline list form too', async () => {
+    const inlineNext = '# Current\n\nfocus: x\nnext: [land OD-004, unrelated]\nblockers: none\n'
+    const f = ids(await sy.run(ctxOf({
+      'state/current.md': file(inlineNext),
+      'state/decisions.md': file(CLOSER),
+    })), 'SY-13')
+    assert.equal(f.length, 1, 'the inline form must be read like the block form')
+  })
+
+  it('stays silent when the id is still open', async () => {
+    const current = '# Current\n\nfocus: x\nnext:\n  - waiting on OD-009\nblockers: none\n'
+    const f = ids(await sy.run(ctxOf({
+      'state/current.md': file(current),
+      'state/decisions.md': file(CLOSER),
+    })), 'SY-13')
+    assert.equal(f.length, 0)
+  })
+
+  it('does not scan prose — naming a closed id in a rationale is correct writing', async () => {
+    const current = '# Current\n\nfocus: the queue question from OD-004 is settled\nnext:\n  - ship\nblockers: none\n\nOD-004 is mentioned here in the body as well.\n'
+    const f = ids(await sy.run(ctxOf({
+      'state/current.md': file(current),
+      'state/decisions.md': file(CLOSER),
+    })), 'SY-13')
+    assert.equal(f.length, 0, 'only next:/blockers: are dependency edges')
+  })
+
+  it('reads domain frontmatter, and stops at the closing fence', async () => {
+    const domain = '---\nfocus: billing\nnext:\n  - blocked by OD-004\nblockers: none\n---\n\n# Billing\n\n> Scope.\n\nOD-004 in the body is prose.\n'
+    const f = ids(await sy.run(ctxOf({
+      'context/billing.md': file(domain),
+      'state/decisions.md': file(CLOSER),
+    })), 'SY-13')
+    assert.equal(f.length, 1)
+    assert.equal(f[0].file, 'context/billing.md')
+  })
+
+  it('a checked-off HT counts as settled — the reported case', async () => {
+    const root = await makeRoot('truss-sy13-ht-')
+    try {
+      await runInit(root, ['--name', 'Edges', '--lang', 'English'])
+      await fs.writeFile(path.join(root, 'HUMAN-TODOS.md'),
+        '# Human ToDos\n\n- [x] HT-022 — grant the deploy key\n- [ ] HT-023 — still open\n')
+      await fs.writeFile(path.join(root, 'state', 'current.md'),
+        '# Current\n\nfocus: x\nnext:\n  - blocked by HT-022\n  - also waiting on HT-023\nblockers: none\n')
+      const f = ids(await runChecks(root), 'SY-13')
+      assert.equal(f.length, 1, 'only the checked-off one')
+      assert.match(f[0].message, /HT-022/)
+      assert.match(f[0].message, /checked off/)
+    } finally { await fs.rm(root, { recursive: true, force: true }) }
+  })
+
+  it('an ARCHIVED decision is not settled — archiving keeps it binding', async () => {
+    const root = await makeRoot('truss-sy13-archive-')
+    try {
+      await runInit(root, ['--name', 'Archived', '--lang', 'English'])
+      await fs.mkdir(path.join(root, 'archive', 'decisions'), { recursive: true })
+      await fs.writeFile(path.join(root, 'archive', 'decisions', 'D-002.md'),
+        '## D-002 — Old but binding\n\nDate: 2026-01-01\nDecision: keep\nRationale: r\nConsequences: c\n')
+      await fs.writeFile(path.join(root, 'state', 'current.md'),
+        '# Current\n\nfocus: x\nnext:\n  - implement what D-002 requires\nblockers: none\n')
+      assert.equal(ids(await runChecks(root), 'SY-13').length, 0)
+    } finally { await fs.rm(root, { recursive: true, force: true }) }
+  })
+
+  it('a fresh workspace is silent', async () => {
+    const root = await makeRoot('truss-sy13-clean-')
+    try {
+      await runInit(root, ['--name', 'Clean', '--lang', 'English'])
+      assert.equal(ids(await runChecks(root), 'SY-13').length, 0)
+    } finally { await fs.rm(root, { recursive: true, force: true }) }
+  })
+})
+
+// ── ST-02 names the escape it used to hide ──────────────────────────────────
+// knownPaths is derived upward only (a row registers its parents, never its
+// children), so a new directory could be cleared only one table row per file —
+// the file inventory the §2 preamble rules out. The way around it existed and
+// was spelled three different ways, none of them written down.
+describe('ST-02 fix text names the summary-row escape', () => {
+  it('a file inside an unlisted directory is told how to make the directory a summary row', async () => {
+    const root = await makeRoot('truss-st02-summary-')
+    try {
+      await runInit(root, ['--name', 'Scripts', '--lang', 'English'])
+      await fs.mkdir(path.join(root, 'scripts'), { recursive: true })
+      await fs.writeFile(path.join(root, 'scripts', 'secrets.sh'), '#!/bin/sh\necho hi\n')
+      const f = ids(await runChecks(root), 'ST-02').find(x => (x.file || '').startsWith('scripts/secrets'))
+      assert.ok(f, 'precondition: the file is reported')
+      assert.match(f.fix, /summary row/)
+      assert.match(f.fix, /scripts\//)
+    } finally { await fs.rm(root, { recursive: true, force: true }) }
+  })
+})
+
+// A git system file is not unmanaged workspace content. `.gitattributes` was the
+// one missing from that list, so every adopter whose repo has one — and most do —
+// carried a permanent ST-02 they could only clear by inventing a table row for it.
+describe('ST-02 treats .gitattributes like the other git system files', () => {
+  it('does not report it as an unmanaged path', async () => {
+    const root = await makeRoot('truss-st02-gitattributes-')
+    try {
+      await runInit(root, ['--name', 'Attrs', '--lang', 'English'])
+      await fs.writeFile(path.join(root, '.gitattributes'), '* text=auto\n')
+      const st02 = (await st.run(await loadWorkspace(root))).filter(f => f.id === 'ST-02')
+      assert.equal(st02.length, 0, JSON.stringify(st02))
+    } finally { await fs.rm(root, { recursive: true, force: true }) }
+  })
+})
+
+// ── CX-01 says what it counted ──────────────────────────────────────────────
+// Half of the answer to a metric that could be gamed: the message names every
+// file it summed, so the basis is on screen. The other half is that the basis
+// now comes out of §1 — see the block below.
+describe('CX-01 names the files it counted', () => {
+  it('the message lists every counted file, not only the heaviest three', async () => {
+    const big = (n) => '# Big\n\n' + 'word '.repeat(n)
+    const f = ids(await cx.run(ctxOf({
+      'AGENTS.md': file(big(9000)),
+      'state/current.md': file(big(2000)),
+      'VISION.md': file(big(2000)),
+      'state/profile.md': file(big(500)),
+    })), 'CX-01')
+    assert.equal(f.length, 1, 'precondition: over the warn band')
+    assert.match(f[0].message, /Counted: /)
+    for (const rel of ['AGENTS.md', 'state/current.md', 'VISION.md', 'state/profile.md']) {
+      assert.ok(f[0].message.includes(rel), `counted list must name ${rel}`)
+    }
+  })
+})
+
+// ── CX-01/CX-02: the boot list comes out of §1 (D-095/OD-018) ───────────────
+// A fixed six-file list made splitting a boot file the most effective way to
+// quiet CX-01 and the only one that improved nothing. Deriving the list closes
+// that, and brings two risks worth pinning: a §1 the parser cannot read must say
+// so instead of silently measuring less, and our change must not turn a green
+// instance red (`release-maturity.md`, D-081).
+describe('CX-01 measures the load order this workspace declares', () => {
+  const big = (n) => '# Big\n\n' + 'word '.repeat(n)
+  const SECTION_1 = (...paths) =>
+    '# A\n\n## 1 Load order\n\n1. This file — fully.\n'
+    + paths.map((p, i) => `${i + 2}. \`${p}\` — loaded.\n`).join('')
+    + '\n## 2 Structure\n'
+
+  it('counts a boot file that §1 names but the shipped list never knew', async () => {
+    const f = await cx.run(ctxOf({
+      'AGENTS.md': file(SECTION_1('state/current.md', 'state/current.tasks.md')),
+      'state/current.md': file(big(6000)),
+      'state/current.tasks.md': file(big(6000)),
+    }))
+    const cx01 = ids(f, 'CX-01')
+    assert.equal(cx01.length, 1, 'the split halves are summed, so the budget is crossed')
+    assert.ok(cx01[0].message.includes('state/current.tasks.md'))
+    assert.equal(ids(f, 'CX-02').length, 0, 'a readable §1 raises no fallback notice')
+  })
+
+  it('falls back loudly when §1 cannot be read', async () => {
+    const f = await cx.run(ctxOf({
+      'AGENTS.md': file('# A\n\nno load order here\n'),
+      'VISION.md': file(big(13000)),
+    }))
+    const cx02 = ids(f, 'CX-02')
+    assert.equal(cx02.length, 1)
+    assert.equal(cx02[0].severity, 'I')
+    assert.match(cx02[0].message, /shipped list/)
+    assert.equal(ids(f, 'CX-01').length, 1, 'the budget is still measured, just against the default set')
+  })
+
+  it('reports info, not a warning, when only the newly counted files cross the band', async () => {
+    // Long-counted files stay under 18k on their own; the file §1 adds tips it over.
+    const f = ids(await cx.run(ctxOf({
+      'AGENTS.md': file(SECTION_1('VISION.md', 'state/extra.md')),
+      'VISION.md': file(big(9000)),        // ≈13.5k on its own
+      'state/extra.md': file(big(4000)),   // ≈6k more
+    })), 'CX-01')
+    assert.equal(f.length, 1)
+    assert.equal(f[0].severity, 'I', 'our change must not turn a green instance red')
+    assert.ok(f[0].message.includes('state/extra.md'), 'and it must say which file is new')
+  })
+
+  it('never softens an error-band measurement, however new the files are', async () => {
+    // The promise is "our change does not turn a green instance red", not "we
+    // hide what the new measurement finds". `ackVerdict` refuses to downgrade an
+    // E for the same reason.
+    const f = ids(await cx.run(ctxOf({
+      'AGENTS.md': file(SECTION_1('VISION.md', 'state/extra.md')),
+      'VISION.md': file(big(9000)),
+      'state/extra.md': file(big(13000)),
+    })), 'CX-01')
+    assert.equal(f.length, 1)
+    assert.equal(f[0].severity, 'E')
+  })
+
+  // Review finding: `counted` holds the boot files AND the phase read: targets, so
+  // treating "not in CONTEXT_FILES" as "newly counted" made every read target look
+  // new — and a workspace whose weight sat in one had its warning, and its error,
+  // downgraded to info forever. The old code counted read targets all along.
+  it('does not treat a phase read: target as newly counted', async () => {
+    const phases = { frontmatter: { current: 'build' }, defs: new Map([['build', { read: 'context/architecture.md' }]]) }
+    const f = ids(await cx.run(ctxOf({
+      // Three named paths, so §1 really is derived — with fewer the parser
+      // refuses and falls back, and this test would pass without testing anything.
+      'AGENTS.md': file(SECTION_1('state/current.md', 'VISION.md', 'state/profile.md')),
+      'state/current.md': file(big(10)),
+      'context/architecture.md': file(big(14000)),
+    }, { phases })), 'CX-01')
+    assert.equal(f.length, 1)
+    assert.equal(f[0].severity, 'W', 'a read target was always counted, so nothing about it is new')
+  })
+
+  // Review finding: deriving the list closed one gaming vector and would have
+  // opened a cheaper one — a §1 that simply omits a boot file (dropped backticks,
+  // a link, plain prose) would stop counting it, with `ok` still true, so no
+  // fallback and no notice. §1 may only add to the shipped set.
+  it('a §1 that omits a shipped boot file cannot lower the number', async () => {
+    const files = {
+      'state/current.md': file(big(6000)),
+      'VISION.md': file(big(6000)),
+      'state/profile.md': file(big(4000)),   // heavy, and left out of §1 below
+    }
+    // Both §1 bodies are the same length, so only the file SET can differ.
+    const full = ids(await cx.run(ctxOf({
+      'AGENTS.md': file(SECTION_1('state/current.md', 'VISION.md', 'state/profile.md')),
+      ...files,
+    })), 'CX-01')
+    const omits = ids(await cx.run(ctxOf({
+      'AGENTS.md': file(SECTION_1('state/current.md', 'VISION.md', 'state/risks.md')),
+      ...files,
+    })), 'CX-01')
+    assert.equal(full.length, 1, 'precondition: over the band')
+    assert.equal(omits.length, 1, 'omitting profile.md from §1 must not make it green')
+    const countedIn = (f) => f[0].message.match(/Counted: (.*)$/)[1].split(', ').sort()
+    assert.ok(countedIn(omits).includes('state/profile.md'),
+      'a shipped boot file stays counted even when §1 stops naming it')
+    assert.deepEqual(countedIn(omits), countedIn(full))
+  })
+
+  it('is a real warning again once the long-counted files alone exceed the band', async () => {
+    const f = ids(await cx.run(ctxOf({
+      'AGENTS.md': file(SECTION_1('VISION.md', 'state/extra.md')),
+      'VISION.md': file(big(13000)),
+      'state/extra.md': file(big(1000)),
+    })), 'CX-01')
+    assert.equal(f.length, 1)
+    assert.equal(f[0].severity, 'W')
+  })
+})
+
+// SY-13 must not read documented examples as real edges. The `Closes:` scan in
+// checks/rf.mjs deliberately does not skip fences, because there the set only
+// SUPPRESSES a warning; here it PRODUCES one, so a code block could invent a
+// finding out of nothing.
+describe('SY-13 ignores fenced and commented-out examples', () => {
+  it('a Closes: line inside a code block does not settle anything', async () => {
+    const doc = '# Decisions\n\nHow to close a question:\n\n```markdown\nCloses: OD-004\n```\n'
+    const current = '# Current\n\nfocus: x\nnext:\n  - waiting on OD-004\nblockers: none\n'
+    const f = ids(await sy.run(ctxOf({
+      'state/current.md': file(current),
+      'state/decisions.md': file(doc),
+    })), 'SY-13')
+    assert.equal(f.length, 0)
+  })
+
+  it('a next: block inside a code block is not a dependency edge', async () => {
+    const closer = '# Decisions\n\n## D-007 — X\n\nDate: 2026-01-01\nCloses: OD-004\nDecision: d\nRationale: r\nConsequences: c\n'
+    const current = '# Current\n\nfocus: x\nblockers: none\n\nExample of the format:\n\n```yaml\nnext:\n  - waiting on OD-004\n```\n'
+    const f = ids(await sy.run(ctxOf({
+      'state/current.md': file(current),
+      'state/decisions.md': file(closer),
+    })), 'SY-13')
+    assert.equal(f.length, 0)
   })
 })

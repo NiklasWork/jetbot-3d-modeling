@@ -4,6 +4,7 @@
 //           tolerated if present but no longer required, U6/D-074/D-077: git already carries it;
 //           'next' drops out of the requirement as soon as domains exist, U5 — see below)
 // SY-12  I  state/current.md still carries a global next: although domains exist (U5/E6)
+// SY-13  W  a next:/blockers: entry names an entry that is already settled
 // SY-02  —  retired (age-based staleness; a resting project is not a broken one) — id not reused
 // SY-03  W  entry grammar violated — one pass per class in docs/schema.md, plus profile.md and code-root
 // SY-04  —  retired (INBOX.md removed from the baseline; id not reused)
@@ -50,8 +51,8 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { wordCount, toTokens, CONTEXT_FILES, WARN_TOKENS } from '../lib/context-budget.mjs'
-import { CHECKBOX_ANY, CHECKBOX_DONE } from '../lib/md.mjs'
-import { hasDomains, meaningful } from '../lib/domains.mjs'
+import { CHECKBOX_ANY, CHECKBOX_DONE, parseFrontmatter, ignoredLines } from '../lib/md.mjs'
+import { hasDomains, meaningful, DOMAIN_DIR } from '../lib/domains.mjs'
 import { DECISIONS_DIR } from '../lib/decisions-index.mjs'
 import { filesForClass, fileForClass, classById } from '../lib/schema.mjs'
 
@@ -67,6 +68,7 @@ export const meta = [
   { id: 'SY-10', severity: 'I', title: 'open decision has been waiting a long time', description: 'Opened: ≥ 30 days ago → decide it, re-brief it, or drop it; not SY-02 (that aged all state, this asks about a question waiting on a human)' },
   { id: 'SY-11', severity: 'W', title: 'Challenged-by: points at an open decision that does not exist', description: 'The challenge was resolved or removed but the marker on the decision stayed' },
   { id: 'SY-12', severity: 'I', title: 'current.md still carries a global next: although domains exist', description: 'Open points belong in the frontmatter next: of the domain file that owns them; a project-wide next step is focus: (U5)' },
+  { id: 'SY-13', severity: 'W', title: 'a next: or blockers: entry points at an entry that is already settled', description: 'The reverse of SY-06: not a settled entry that stayed, but a live dependency edge on one. Settled = named by a Closes: line, or defined as a checked-off list entry. An archived entry does NOT count — archiving keeps a decision binding and findable' },
 ]
 
 // 'recently-done' left the required set with U6/D-074/D-077: `git log` already
@@ -202,10 +204,148 @@ export async function run(ctx) {
     checkStaleChallenges(f, openDecisions, findings)
   }
 
+  // ── SY-13: dependency edges that point at something already settled ─────
+  checkSettledDependencies(ctx, findings)
+
   // ── SY-12: a global next: that outlived the move to domain files ────────────
   if (domainsExist) checkGlobalNextWithDomains(current, findings)
 
   return findings
+}
+
+// ── SY-13 — the gap `doctor` had in the other direction. SY-06 finds a settled
+//    entry that stayed behind; nothing found a *live* edge that points at one.
+//    So a plan could read "blocked by HT-022" for weeks after HT-022 was ticked
+//    off, and `truss status` carried the dead edge straight into the session
+//    opening — wrong exactly where it is read first, and with `doctor` saying
+//    "all checks passed".
+//
+//    Scope is deliberately narrow, because breadth here is false positives.
+//    Only *dependency edges* are read: the `next:` and `blockers:` values in
+//    state/current.md and in domain frontmatter. Prose is not scanned — naming a
+//    superseded decision in a rationale is correct writing, not a defect.
+//
+//    "Settled" is two signals, both unambiguous:
+//      • the id appears in a `Closes:` line (the OD trace, AGENTS.md §3), or
+//      • its definition is a checked-off list entry (`- [x] HT-NNN — …`).
+//    An ARCHIVED entry is deliberately NOT settled: archive/ keeps a decision
+//    binding and findable (RF-02 resolves it), so an edge onto one is a
+//    judgement call, not a mechanical error — and this check only reports what
+//    is mechanical. ─────────────────────────────────────────────────────────────
+
+/**
+ * Ids that are demonstrably settled → why, for the message.
+ *
+ * Fenced and commented-out lines are skipped, which checks/rf.mjs's otherwise
+ * identical `closedIds` scan does not do. The asymmetry is deliberate and runs
+ * the safe way in both places: there the set SUPPRESSES an RF-02, so a
+ * documented example can only cost a warning; here it PRODUCES a finding, so the
+ * same example would invent one out of a code block.
+ */
+function settledIds(ctx) {
+  const settled = new Map()
+
+  for (const [rel, f] of ctx.files) {
+    const lines = f.lines || []
+    const fenced = ignoredLines(lines)
+    for (let i = 0; i < lines.length; i++) {
+      if (fenced.has(i)) continue
+      const m = lines[i].match(/^\s*Closes:\s*(.+)$/)
+      if (!m) continue
+      for (const tok of m[1].match(/[A-Z]+-\d+/g) || []) {
+        if (!settled.has(tok)) settled.set(tok, `closed by the 'Closes:' line in ${rel}:${i + 1}`)
+      }
+    }
+  }
+
+  // Checked-off list definitions. Read off ctx.idDefs (the schema-driven
+  // definition index) rather than re-deciding what a definition is, then judged
+  // with the shared CHECKBOX_DONE fragment so this cannot drift from SY-07.
+  const doneRe = new RegExp(`^[-*]\\s+${CHECKBOX_DONE}\\s`)
+  for (const [id, defs] of ctx.idDefs || []) {
+    for (const d of defs) {
+      const target = ctx.files.get(d.file)
+      const line = target?.lines?.[d.line - 1]
+      if (line && doneRe.test(line.trimStart()) && !ignoredLines(target.lines).has(d.line - 1)) {
+        settled.set(id, `checked off in ${d.file}:${d.line}`)
+        break
+      }
+    }
+  }
+  return settled
+}
+
+/**
+ * Entries of a list-valued key, with the line each sits on.
+ * Handles the three written shapes: `key: value`, a key line followed by
+ * indented `- item` lines, and the inline `key: [a, b]` form.
+ */
+function listKeyEntries(lines, key, limit = lines.length) {
+  const out = []
+  const fenced = ignoredLines(lines)
+  const idx = lines.findIndex((l, i) => i < limit && !fenced.has(i) && new RegExp(`^${key}\\s*:`, 'i').test(l))
+  if (idx === -1) return out
+
+  const inline = lines[idx].slice(lines[idx].indexOf(':') + 1).trim()
+  if (inline) {
+    const items = inline.startsWith('[') && inline.endsWith(']')
+      ? inline.slice(1, -1).split(',')
+      : [inline]
+    for (const it of items) out.push({ text: it.trim(), line: idx + 1 })
+  }
+  // Only a list item or an indented continuation belongs to the value. Anything
+  // else at column 0 ENDS it — including ordinary prose, which state/current.md
+  // may carry after its last key. Reading to end-of-file instead turned a body
+  // paragraph that happens to mention a settled id into a dependency edge; a
+  // check whose false positives look exactly like its true ones is worse than no
+  // check (see the ack note in lib/context-ack.mjs).
+  for (let i = idx + 1; i < limit; i++) {
+    const line = lines[i]
+    if (!line.trim()) continue
+    const isItem = /^\s*[-*]\s+\S/.test(line)
+    const isContinuation = /^\s+\S/.test(line)
+    if (!isItem && !isContinuation) break
+    out.push({ text: line.trim().replace(/^[-*]\s*/, ''), line: i + 1 })
+  }
+  return out.filter(e => meaningful(e.text))
+}
+
+function checkSettledDependencies(ctx, findings) {
+  const settled = settledIds(ctx)
+  if (settled.size === 0) return
+
+  const classes = (ctx.schema?.classes || []).map(c => c.id)
+  if (classes.length === 0) return
+  const idRe = new RegExp(`\\b(?:${classes.join('|')})-\\d{3}\\b`, 'g')
+
+  // Where a dependency edge may legitimately live: the flat key file, and the
+  // frontmatter of every domain. Nothing else.
+  const sources = []
+  const current = ctx.files.get('state/current.md')
+  if (current) sources.push({ rel: 'state/current.md', lines: current.lines, limit: current.lines.length })
+  for (const [rel, f] of ctx.files) {
+    if (!rel.startsWith(DOMAIN_DIR) || !rel.endsWith('.md') || !Array.isArray(f.lines)) continue
+    const { bodyStart } = parseFrontmatter(f.lines)
+    if (bodyStart > 0) sources.push({ rel, lines: f.lines, limit: bodyStart })
+  }
+
+  for (const src of sources) {
+    for (const key of ['next', 'blockers']) {
+      for (const entry of listKeyEntries(src.lines, key, src.limit)) {
+        for (const id of entry.text.match(idRe) || []) {
+          const why = settled.get(id)
+          if (!why) continue
+          findings.push({
+            id: 'SY-13', severity: 'W',
+            file: src.rel, line: entry.line,
+            message: `${key}: names '${id}', which is already settled — ${why}`,
+            fix: `Drop the entry if it was waiting on '${id}', or point it at what is actually still open. A settled id in a dependency edge makes the plan read as blocked when it is not — and 'truss status' carries this line into the next session's opening.`,
+            dedupeKey: `${src.rel}:${key}:${id}`,
+          })
+        }
+      }
+    }
+  }
 }
 
 // ── SY-12 — see the header note for why this is Info. `next:` in current.md is
@@ -456,34 +596,6 @@ async function checkCodeRootConfig(ctx, findings) {
   }
 }
 
-// Indices of lines inside fenced code blocks (``` or ~~~). Entry-grammar checks
-// skip these so a documented example like `## HT-009 — …` or `## D-001` shown in a
-// code block is not mistaken for a real (malformed) entry. Mirrors parseIdReferences.
-// Lines that look like entries but are not: fenced code blocks AND HTML comment
-// blocks. The baseline state files carry their entry template in a `<!-- ... -->`
-// block (the file is usually empty, so it cannot teach its grammar by example) —
-// without this the template's own "## OD-NNN — [question title]" line would be
-// read as a malformed entry and every fresh workspace would boot with a warning.
-function ignoredLines(lines) {
-  const inside = new Set()
-  let fence = false
-  let comment = false
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    if (!comment && /^\s*(```|~~~)/.test(line)) { inside.add(i); fence = !fence; continue }
-    if (fence) { inside.add(i); continue }
-
-    // A comment block only OPENS at the start of a line. Prose that mentions the
-    // syntax mid-sentence ("…deckt `<!-- -->` mit ab") is not a comment, and
-    // treating it as one swallowed the rest of that entry's fields.
-    const opens = /^\s*<!--/.test(line)
-    const closes = /-->/.test(line)
-    if (comment) { inside.add(i); if (closes) comment = false; continue }
-    if (opens) { inside.add(i); if (!closes) comment = true; continue }
-  }
-  return inside
-}
-
 function entryBody(lines, startIdx, fenced, level = 2) {
   const stop = new RegExp(`^#{1,${level}}\\s`)
   const body = []
@@ -571,6 +683,13 @@ function checkEntryGrammar(cls, file, findings) {
 // Scope is every line that names an ID of the class, not just well-formed ones —
 // the point is to catch the entry that got written as prose. Quoted lines and
 // comment openers are documentation about the form, not entries in it.
+//
+// An entry may carry an INDENTED BODY — for HT that is its steps and two labels
+// (docs/conventions.md). That body is written for the human, so a step naming
+// another entry ("…, unlike HT-012") must not be read as a malformed entry of
+// its own: the author would then face a warning with no legal way to clear it.
+// Only a line at column 0 opens or closes an entry; blank lines do neither, so
+// the paragraph breaks inside a body keep it one body.
 function checkListGrammar(cls, file, fenced, findings) {
   const { lines, relPath } = file
   const mentions = new RegExp(`\\b${cls.id}-\\d{3}\\b`)
@@ -580,10 +699,14 @@ function checkListGrammar(cls, file, fenced, findings) {
   const box = /\[\s*[ xX]\s*\]/.test(cls.formText) ? `${CHECKBOX_ANY}\\s+` : ''
   const grammar = new RegExp(`^[-*]\\s+${box}${cls.id}-\\d{3}\\s+—\\s+\\S`)
 
+  let inBody = false
   for (let i = 0; i < lines.length; i++) {
     if (fenced.has(i)) continue
-    if (!mentions.test(lines[i])) continue
+    if (!lines[i].trim()) continue
     const t = lines[i].trimStart()
+    if (t.length === lines[i].length) inBody = grammar.test(t)
+    else if (inBody) continue
+    if (!mentions.test(lines[i])) continue
     if (t.startsWith('>') || t.startsWith('<!--')) continue
     if (grammar.test(t)) continue
     findings.push({

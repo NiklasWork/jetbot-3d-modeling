@@ -90,6 +90,33 @@ describe('dedupeFindings', () => {
     assert.equal(rf.locations.length, 3)
     assert.equal(out.find(f => f.id === 'ST-05').occurrences, 1)
   })
+
+  it('groups by dedupeKey when a check supplies one — differing messages, one cause', () => {
+    // The RF-01 case: one dead target reached through differently-worded links.
+    // Keyed on the message these stay three rows; keyed on the cause, one.
+    const raw = [
+      { id: 'RF-01', severity: 'E', file: 'a.md', line: 1, message: 'broken link [Vision](../v.md)', dedupeKey: 'target:v.md' },
+      { id: 'RF-01', severity: 'E', file: 'b.md', line: 2, message: 'broken link [the vision](../v.md)', dedupeKey: 'target:v.md' },
+      { id: 'RF-01', severity: 'E', file: 'c.md', line: 3, message: 'broken link [see here](../v.md)', dedupeKey: 'target:v.md' },
+      { id: 'RF-01', severity: 'E', file: 'd.md', line: 4, message: 'broken link [other](../w.md)', dedupeKey: 'target:w.md' },
+    ]
+    const out = dedupeFindings(raw)
+    assert.equal(out.length, 2, 'one row per dead target, not per link text')
+    assert.equal(out[0].occurrences, 3)
+    assert.deepEqual(out[0].locations.map(l => l.file), ['a.md', 'b.md', 'c.md'])
+    assert.equal(out[1].occurrences, 1)
+    // The representative stays a normal finding — dedupeKey must not leak into
+    // anything a consumer renders.
+    assert.equal(out[0].message, 'broken link [Vision](../v.md)')
+  })
+
+  it('a keyed and an unkeyed finding of the same id never collide', () => {
+    const out = dedupeFindings([
+      { id: 'RF-01', severity: 'E', file: 'a.md', message: 'x', dedupeKey: 'x' },
+      { id: 'RF-01', severity: 'E', file: 'b.md', message: 'x' },
+    ])
+    assert.equal(out.length, 2)
+  })
 })
 
 describe('end-to-end: foreign bulk folder stays out of map and doctor', () => {
@@ -186,5 +213,17 @@ describe('host-agent territory is excluded out of the box', () => {
     for (const dir of ['.agents/', '.claude/', '.cursor/', '.codex/', '.gemini/']) {
       assert.ok(active.includes(dir), `${dir} must be an active .trussignore rule`)
     }
+  })
+})
+
+describe('dedupeFindings does not leak its grouping field', () => {
+  it('dedupeKey is stripped from the representative', () => {
+    // It used to ride along on the spread into `--json` and the HTML report,
+    // while the comment above the function claimed it never reaches output.
+    const out = dedupeFindings([
+      { id: 'RF-01', severity: 'E', file: 'a.md', message: 'm', dedupeKey: 'target:x.md' },
+    ])
+    assert.equal('dedupeKey' in out[0], false)
+    assert.equal(out[0].occurrences, 1)
   })
 })

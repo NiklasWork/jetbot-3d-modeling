@@ -120,8 +120,15 @@ doctor flags a `Challenged-by:` whose OD no longer exists (SY-11).
 
 ### HT-NNN — Human todo
 
-```
-- [ ] HT-NNN — [what the human needs to do] — [context or deadline if relevant]
+```markdown
+- [ ] HT-NNN — **[what the human is to do]**
+
+  1. [step — the exact command, path, address, or wording]
+  2. […]
+
+  **Done when:** [the observable result that ends it]
+
+  **Background:** [D-NNN · file — context only, never something a step needs]
 ```
 
 Qualifier — before writing an HT, ask: could an agent do this itself, with the
@@ -135,14 +142,20 @@ human should know" are not qualifiers, and neither is a task you could do but
 would rather hand over. A question that needs the human's judgment is an
 `OD-NNN` briefing, not an HT — an HT is an action with a doer.
 
-Keep it one line, two at most; details live in the owning domain file or OD entry —
-link, don't inline. Every HT must be executable stand-alone: either the line itself
-carries everything the human needs, or it names the exact place where the
-instructions live (file/section, OD-/D-id) — "update X" without saying where and
-how is not an entry. Check off with `[x]` when done; never delete an open entry.
-Checked-off entries are working memory, not history: once a `[x]` entry is clearly
-settled (rule of thumb: the next session no longer needs it), move its line verbatim
-to `archive/human-todos.md` (create on demand). IDs stay sequential and are never
+**Executable from the entry alone.** The human must not have to open a decision,
+a domain file, or a chat log to act — `see D-042` where the instruction belongs is
+not an entry. Copy the two facts a step needs into the step; references go on
+`Background:`, which is context, never a missing piece. Write the steps out: each
+names the exact command, path, address, or wording, and `Done when:` names the
+result that lets the human tick the box. One step a single line states in full
+stays a single line; from two steps up, number them. Length is not the limit here —
+a step the human has to reconstruct is. Only the entry line is parsed; the indented
+body is for the human — steps, the two labels, nothing else.
+
+Check off with `[x]` when done; never delete an open entry. Checked-off entries are
+working memory, not history: once a `[x]` entry is clearly settled (rule of thumb:
+the next session no longer needs it), move it — entry line and body — verbatim to
+`archive/human-todos.md` (create on demand). IDs stay sequential and are never
 reused — the counter continues across archived entries. doctor nudges when done
 entries pile up (SY-07).
 
@@ -263,6 +276,80 @@ systemic agent weaknesses with a local fix (`L-NNN`): a finding is feedback
 Workspaces initialised with `--findings off` have no findings channel; do not
 create the file there.
 
+**Quoting IDs from another workspace.** Two Truss workspaces share the grammar
+and therefore the ID space: a report that arrives from another instance carries
+`TF-007`, `D-042`, `HT-022` that mean nothing here. Written plainly they are read
+as references into *this* register and `RF-02` warns about every one of them.
+Wrap a foreign ID in inline code — `` `TF-007` `` — which `RF-02` does not
+follow. Never add one to a local register to silence the warning; that spends a
+number of your own on someone else's entry, and the numbers are never reused.
+
+## The §2 structure table
+
+Two ways to give a directory a routing home, and the second one is the one that
+gets missed.
+
+**A row per path** is the default: one line naming the file or directory, its
+owner, and what belongs in it.
+
+**A summary row** says "this directory has a home, and its contents are not
+table-managed individually". `doctor` then checks the directory itself and stays
+quiet about everything inside it. Mark one by writing the words `summary row`
+into the row's Purpose cell, or `(on demand)` after the path:
+
+```markdown
+| scripts/ | A | build and maintenance scripts — summary row, contents not table-managed |
+| notes/ (on demand) | A | working notes |
+```
+
+Reach for a summary row whenever listing the contents would turn the table into
+a file inventory — which its own preamble rules out; that is what `state/map.md`
+is for. Without it, `ST-02` reports every new file inside the directory
+separately, because a row registers its parent directories but never its
+children.
+
+## Silencing a finding you have answered
+
+Some info findings are correct in general and wrong for one file. `ST-05` says a
+file over 450 lines should be split; a reference table or an archived document is
+one where splitting would be the wrong move. A finding you intend to ignore
+forever costs more than no finding at all — it lowers the attention every other
+finding gets.
+
+Write one line in the file the finding is about:
+
+```markdown
+<!-- truss: st-05 ok — reference table; splitting it would break the format -->
+```
+
+`doctor` then stops printing that finding for that file and reports how many it
+silenced, so suppressions stay visible without being noisy.
+
+Put the marker at the start of a line. Writing the syntax down is safe: a marker
+inside a code fence, an indented block, a blockquote or inline code is being
+shown, not meant, and silences nothing — which is also why an indented marker
+does not count.
+
+Four limits, on purpose:
+
+- **Info findings only.** A warning or an error is something to act on — `doctor`
+  already exits non-zero at a warning.
+- **The reason is required.** A marker without one is ignored. A silenced finding
+  nobody explained is an unexplained exception to the next reader, which is the
+  state this is meant to prevent.
+- **It reaches exactly one file and one check.** Silencing `ST-05` here leaves the
+  file that really is too big still reported.
+- **It answers one finding, not a class.** Some checks fire once per entry in a
+  single file — `SY-10` does, for every open decision. If more than one finding of
+  that check is open on the file, the marker applies to *none* of them and
+  `doctor` says so: the reason you wrote about one entry is not true of the
+  others, and a blanket would also silence entries added later.
+
+The reason belongs next to the thing it justifies, which is why this is a line in
+the file rather than an entry in a central ignore list. `.trussignore` is a
+different tool: it removes a path from the map and from *every* check, for
+foreign or bulk data that was never workspace content.
+
 ## Profile
 
 `state/profile.md` is boot context, read every session — a config sheet, not a
@@ -312,6 +399,10 @@ blockers: none
 
 [Content begins here. Omit ## Tasks when there are no local tasks.]
 ```
+
+The three written forms of a list field are equivalent — a YAML block (above),
+a comma list (`next: alpha, beta`) and the inline list (`next: [alpha, beta]`).
+Prefer the block when an entry may itself contain a comma.
 
 **The frontmatter is the domain's state, and it is what makes the file a domain.**
 A `context/**.md` file whose frontmatter carries a non-empty `focus:` *is* a

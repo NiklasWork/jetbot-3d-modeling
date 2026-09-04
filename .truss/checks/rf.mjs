@@ -60,6 +60,9 @@ export async function run(ctx) {
               file: relPath, line,
               message: `broken anchor link [${text}](#${anchor}) — heading not found in this file`,
               fix: `Fix the anchor or add a heading matching '#${anchor}'`,
+              // Group by the missing heading, not by the link text: the same dead
+              // anchor linked from ten places is one defect (see dedupeFindings).
+              dedupeKey: `anchor:${relPath}#${normalised}`,
             });
           }
         }
@@ -90,6 +93,7 @@ export async function run(ctx) {
           file: relPath, line,
           message: `broken link [${text}](${href}) — target file '${targetRel}' does not exist`,
           fix: `Create '${targetRel}' or fix the link path`,
+          dedupeKey: `target:${targetRel}`,
         });
         continue;
       }
@@ -106,6 +110,7 @@ export async function run(ctx) {
             file: relPath, line,
             message: `broken anchor link [${text}](${href}) — heading '#${anchor}' not found in '${targetRel}'`,
             fix: `Fix the anchor or add a matching heading in '${targetRel}'`,
+            dedupeKey: `anchor:${targetRel}#${normalised}`,
           });
         }
       } else if (anchor && !targetFileCtx) {

@@ -9,12 +9,7 @@ import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 import { loadWorkspace } from '../lib/workspace.mjs'
-import * as st from '../checks/st.mjs'
-import * as bl from '../checks/bl.mjs'
-import * as rf from '../checks/rf.mjs'
-import * as ph from '../checks/ph.mjs'
-import * as sy from '../checks/sy.mjs'
-import * as cx from '../checks/cx.mjs'
+import { CHECK_MODULES } from '../lib/run-checks.mjs'
 
 // Never prompt (no readline hang) and never shell out to git in tests.
 process.stdin.isTTY = false
@@ -39,12 +34,20 @@ export async function makeRoot(tag = 'truss-test-') {
   return root
 }
 
-/** Run the full check suite (ST/BL/RF/PH/SY/CX/HY) against a workspace and return findings. */
+/**
+ * Run the full check suite against a workspace and return the RAW findings —
+ * not deduped, unlike lib/run-checks.mjs, because most tests here count
+ * occurrences. The family list comes from CHECK_MODULES so this cannot drift
+ * from what `doctor` and `status` actually run (L-006).
+ */
 export async function runChecks(root, { gate = false } = {}) {
   const ctx = await loadWorkspace(root)
   ctx.gate = gate
   const findings = []
-  for (const mod of [st, bl, rf, ph, sy, cx]) findings.push(...await mod.run(ctx))
+  for (const name of CHECK_MODULES) {
+    const mod = await import(`../checks/${name}.mjs`)
+    findings.push(...await mod.run(ctx))
+  }
   return findings
 }
 

@@ -82,12 +82,23 @@ describe('parseFrontmatterList (lib/md.mjs)', () => {
       ['only one'])
   })
 
-  it('does NOT support inline YAML — the documented limitation, pinned', () => {
-    // docs/conventions.md tells authors to use one of the two forms above
-    // precisely because this one parses wrong rather than failing loudly.
+  it('supports inline YAML as the third form', () => {
+    // Was pinned as a documented limitation and parsed to ['[a', 'b]'] — two
+    // entries whose text is corrupt, reported by nothing. It is the form a
+    // writer reaches for first, so it is parsed now.
     assert.deepEqual(
       parseFrontmatterList(frontmatterValue('next: [a, b]', 'next')),
-      ['[a', 'b]'])
+      ['a', 'b'])
+  })
+
+  it('inline YAML: single entry, quotes, empty list, commas inside quotes', () => {
+    const inline = (raw) => parseFrontmatterList(frontmatterValue(`next: ${raw}`, 'next'))
+    assert.deepEqual(inline('[only one]'), ['only one'])
+    assert.deepEqual(inline(`['a', "b"]`), ['a', 'b'])
+    assert.deepEqual(inline('[]'), [])
+    // A bracketed value is only treated as a list when it opens AND closes as
+    // one; anything else stays a plain scalar, so no existing file changes.
+    assert.deepEqual(inline('[unclosed'), ['[unclosed'])
   })
 })
 

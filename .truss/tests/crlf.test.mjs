@@ -12,6 +12,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 
 import { parseFrontmatter, parseHeadings, splitLines } from '../lib/md.mjs'
+import { bootFilesFrom } from '../lib/context-budget.mjs'
 import { runInit } from '../lib/commands/init.mjs'
 import { makeRoot, runChecks, read } from './helpers.mjs'
 
@@ -30,6 +31,20 @@ describe('the parsers tolerate CRLF', () => {
     const [h] = parseHeadings(['## D-001 — Title\r'])
     assert.equal(h.text, 'D-001 — Title')
     assert.equal(h.anchor, parseHeadings(['## D-001 — Title'])[0].anchor)
+  })
+
+  // The boot budget now parses §1 out of AGENTS.md, so it joined the class of
+  // parsers this file exists for. A \r would push it to the loud fallback rather
+  // than a wrong number, but every Windows checkout would then carry a CX-02 it
+  // could not clear.
+  it('the §1 boot list, even when the caller left \\r on the lines', () => {
+    const text = '# A\n\n## 1 Load order\n\n1. This file.\n2. `state/current.md`\n3. `VISION.md`\n\n## 2 Structure\n'
+    const lf = bootFilesFrom(splitLines(text))
+    const cr = bootFilesFrom(splitLines(crlf(text)))
+    const raw = bootFilesFrom(crlf(text).split('\n'))
+    assert.equal(lf.ok, true)
+    assert.deepEqual(cr.files, lf.files)
+    assert.deepEqual(raw.files, lf.files, 'a raw split leaves \\r on every line')
   })
 
   it('splitLines drops the trailing empty line either way', () => {

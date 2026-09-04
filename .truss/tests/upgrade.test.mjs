@@ -212,6 +212,39 @@ describe('runUpgrade', () => {
     )
   })
 
+  // D-069's safety rests on a coupling, not on the line above: `init` MUST write
+  // `.claude/.truss-skills.json`, because readSelectedGroups() reads a MISSING
+  // file as "every group" and an upgrade then installs all 83 skills into a
+  // workspace that asked for none. The opt-out test alone cannot see that — it
+  // would still pass if the ENOENT branch started returning an empty set, at
+  // which point the invariant it rests on would quietly stop mattering. This is
+  // the other side of the coupling, and it is the side that bites (`L-011`).
+  it('treats a MISSING skill selection as every group — the invariant `init` must uphold', async () => {
+    const ws = await makeRoot('truss-upgrade-skills-missing-')
+    await runInit(ws, ['--name', 'No selection', '--lang', 'English', '--skills', 'none'])
+    await fs.writeFile(path.join(ws, '.truss/VERSION'), '0.0.1\n')
+
+    // Exactly the state a default `init` would leave behind if it ever stopped
+    // writing the selection file.
+    await fs.rm(path.join(ws, '.claude/.truss-skills.json'))
+
+    const next = await fs.mkdtemp(path.join(os.tmpdir(), 'truss-upgrade-skills-missing-next-'))
+    await fs.cp(path.join(ENGINE_DIR, 'baseline'), path.join(next, '.truss/baseline'), { recursive: true })
+    await fs.writeFile(path.join(next, '.truss/VERSION'), '0.0.2\n')
+    await write(
+      next,
+      '.truss/baseline/.claude/skills/marketing-new/SKILL.md',
+      '# Newly introduced marketing skill\n',
+    )
+
+    await runUpgrade(next, ['--root', ws])
+    assert.equal(
+      await exists(ws, '.claude/skills/marketing-new/SKILL.md'),
+      true,
+      'without a selection file the upgrade installs the group — which is why init must always write one',
+    )
+  })
+
   it('swaps the engine, reconciles the baseline, and never writes project state', async () => {
     const { tmp, ws, next } = await fixture()
     const before = {

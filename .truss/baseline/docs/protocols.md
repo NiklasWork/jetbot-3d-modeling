@@ -64,7 +64,7 @@ than carrying it silently for another year.
 
 - A domain file exceeds ~500 lines → split the oldest / least-active section to `archive/<domain>/<topic>.md`
 - A decision is superseded (see D-NNN grammar in docs/conventions.md) → the entry stays in `state/decisions/D-NNN.md` with `Superseded-by:`; once its full text no longer informs current work, compress it in place to heading + trace lines and move the body to `archive/decisions/D-NNN.md`. Compressing makes the *body* cheaper to open; only moving the whole file to `archive/decisions/` takes the entry out of the boot, because the boot loads `state/decisions-index.md`, which carries the title either way
-- A HUMAN-TODOS.md entry is checked `[x]` and clearly settled (the next session no longer needs it) → move the line verbatim to `archive/human-todos.md`; the HT counter continues across archived entries
+- A HUMAN-TODOS.md entry is checked `[x]` and clearly settled (the next session no longer needs it) → move it — entry line and indented body — verbatim to `archive/human-todos.md`; the HT counter continues across archived entries
 - An open-decisions.md entry was decided → it is removed the moment the D-NNN (with `Closes: OD-NNN`) is written — never park a "DECIDED" tombstone; update references to point at the D-NNN instead
 
 **When to clean up active files:**

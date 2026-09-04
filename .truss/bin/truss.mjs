@@ -12,6 +12,39 @@ if (_maj < 20) {
   )
   process.exit(1)
 }
+
+// ── exitFlushed: process.exit() does not flush stdout ────────────────────────
+// On a TTY stdout is synchronous, so exiting straight after printing is safe.
+// On a POSIX **pipe** it is not: writes are queued and handed to the OS by
+// libuv, and process.exit() drops whatever is still queued. Output longer than
+// what the pipe accepted is cut mid-byte, with no error anywhere and a zero exit
+// code — the reader gets a truncated document and no way to know.
+//
+// Measured, not deduced. `doctor --json` on a workspace with a 182 KB report,
+// read by a consumer that had not started reading yet: 181526 bytes were still
+// queued when exit was called, and 50454 of them never arrived. In CI it hit the
+// small end of the same effect — a 9562-byte report cut at 8157 ("Unterminated
+// string in JSON at position 8157", macOS/Node 20, run 33825489580). Linux has a
+// larger pipe and hid it; the bug was never macOS's.
+//
+// The trade-off, stated plainly: against a consumer that never reads, this
+// blocks where the old code exited. That is what every well-behaved Unix tool
+// does on a full pipe, and it is the safe direction — silently losing 50 KB is
+// not. A timeout here would only make the truncation rarer, never correct.
+// Against a normal consumer nothing changes: same bytes, same exit code,
+// verified byte-for-byte against the on-disk report.
+//
+// So every command that ends by calling exit goes through here — that is the
+// class, and `tests/stdout-flush.test.mjs` keeps it that way. The Node version
+// guard above is the one exception: it must stay CJS-safe, runs before anything
+// else, and writes ~100 bytes to stderr.
+async function exitFlushed(code) {
+  for (const s of [process.stdout, process.stderr]) {
+    if (s.writableLength > 0) await new Promise((done) => s.write('', done))
+  }
+  process.exit(code)
+}
+
 //
 // M2: doctor (ST/BL/RF checks) + --fix-prompt + --json + exit codes
 // M3: render, set, --gate, PH checks
@@ -33,7 +66,8 @@ import { runStatus } from '../lib/commands/status.mjs'
 import { runPhase } from '../lib/commands/phase.mjs'
 import { runSkills } from '../lib/commands/skills.mjs'
 import { COMMAND_META, COMMAND_BY_NAME, inspectArgs } from '../lib/command-meta.mjs'
-import { SEV_ORDER, SEV_LABEL, FAMILY_NAMES, col, dedupeFindings } from '../lib/severity.mjs'
+import { SEV_LABEL, FAMILY_NAMES, col } from '../lib/severity.mjs'
+import { runAllChecks } from '../lib/run-checks.mjs'
 
 const root = resolveRoot(import.meta.url)
 const agentsMdPath = path.join(root, 'AGENTS.md')
@@ -152,7 +186,15 @@ function renderHtmlReport({ root, version, timestamp, gate, summary, registry, f
 <body>
 <div class="wrap">
   <h1>truss doctor${gate ? ' --gate' : ''}</h1>
-  <div class="sub">${escapeHtml(projectName)} · truss ${escapeHtml(version)} · ${escapeHtml(ts)}</div>
+  <div class="sub">${escapeHtml(projectName)} · truss ${escapeHtml(version)} · ${escapeHtml(ts)}${
+    summary.suppressed > 0
+      ? ` · ${summary.suppressed} info finding${summary.suppressed !== 1 ? 's' : ''} silenced by a marker in the file it is about`
+      : ''
+  }${
+    summary.unapplied > 0
+      ? ` · ${summary.unapplied} marker${summary.unapplied !== 1 ? 's' : ''} silenced nothing (several findings of that check are open on the file)`
+      : ''
+  }</div>
 
   <div class="banner ${status.cls}">${status.text}</div>
 
@@ -210,7 +252,8 @@ Init flags:
 Doctor flags:
   --gate        also run PH-04 phase-exit checks
   --html        write report as HTML to .truss/out/doctor.html
-  --json        write report as JSON to .truss/out/doctor.json
+  --json        print the report as JSON on stdout (and write it to
+                .truss/out/doctor.json)
   --fix-prompt  output a copyable remediation prompt for all findings
 
 Exit codes: 0 = clean · 1 = warnings only · 2 = errors present
@@ -246,7 +289,7 @@ async function runDoctor(flags) {
     ctx = await loadWorkspace(root)
   } catch (err) {
     console.error(`truss doctor: failed to load workspace — ${err.message}`)
-    process.exit(2)
+    await exitFlushed(2)
   }
 
   ctx.gate = gate  // PH-04 reads this
@@ -264,10 +307,16 @@ async function runDoctor(flags) {
       const report = { initialized: false, message: msg, timestamp: new Date().toISOString(), root, version: getVersion() }
       const outDir  = path.join(root, '.truss', 'out')
       const outFile = path.join(outDir, 'doctor.json')
+      const json = JSON.stringify(report, null, 2)
+      // stdout as well as the file: `doctor --json | jq …` is the obvious use of
+      // a flag documented "for tooling", and writing only to a gitignored path
+      // made that pipe return nothing. The file stays — the dashboard and
+      // anything else reading .truss/out/doctor.json keep working.
+      console.log(json)
       await fs.mkdir(outDir, { recursive: true })
-      await fs.writeFile(outFile, JSON.stringify(report, null, 2), 'utf8')
+      await fs.writeFile(outFile, json, 'utf8')
       console.error('Report written to .truss/out/doctor.json')
-      process.exit(0)
+      await exitFlushed(0)
     }
     if (wantHtml) {
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>truss doctor</title>
@@ -281,78 +330,24 @@ code{background:#eee;padding:2px 6px;border-radius:4px;font-size:14px}</style></
       await fs.mkdir(outDir, { recursive: true })
       await fs.writeFile(outFile, html, 'utf8')
       console.error('Report written to .truss/out/doctor.html')
-      process.exit(0)
+      await exitFlushed(0)
     }
     if (wantFixPrompt) {
       console.log('This folder is not a Truss workspace yet. Run `truss init` to get started.')
-      process.exit(0)
+      await exitFlushed(0)
     }
     // Human-readable default
     console.log(`\n${msg}\n`)
-    process.exit(0)
+    await exitFlushed(0)
   }
 
-  const loadTasks = [
-    import('../checks/st.mjs'),
-    import('../checks/bl.mjs'),
-    import('../checks/rf.mjs'),
-    import('../checks/ph.mjs'),
-    import('../checks/sy.mjs'),
-    import('../checks/cx.mjs'),
-  ]
-
-  // All core check modules run in parallel; no first-fail
-  const settled = await Promise.allSettled(loadTasks)
-  const modules = settled.filter(r => r.status === 'fulfilled').map(r => r.value)
-
-  // Declarative check registry (A2): the full catalog of checks, gathered from
-  // each module's `meta` export. Lets --json consumers enumerate ALL checks,
-  // not only the ones that fired this run.
-  const registry = modules.flatMap(mod => mod.meta ?? [])
-
-  const allFindings = []
-  for (const err of settled.filter(r => r.status === 'rejected').map(r => r.reason)) {
-    allFindings.push({
-      id: 'INTERNAL', severity: 'E',
-      file: '(check loader)',
-      message: `Failed to load check module: ${err?.message || String(err)}`,
-      fix: 'Check the module file for syntax errors or invalid imports.',
-    })
-  }
-
-  // Run all module checks in parallel
-  const runTasks = modules.map(async mod => {
-    try {
-      return await mod.run(ctx)
-    } catch (err) {
-      return [{
-        id: 'INTERNAL', severity: 'E',
-        file: '(check runner)',
-        message: `check threw an unexpected error: ${err?.message || String(err)}`,
-        fix: 'Report this as a truss bug — include the stack trace from stderr',
-      }]
-    }
-  })
-  
-  const results = await Promise.all(runTasks)
-  allFindings.push(...results.flat())
-
-  // Sort: E → W → I, then by file+line
-  allFindings.sort((a, b) =>
-    ((SEV_ORDER[a.severity] ?? 9) - (SEV_ORDER[b.severity] ?? 9)) ||
-    (a.file || '').localeCompare(b.file || '') ||
-    ((a.line || 0) - (b.line || 0))
-  )
-
-  // Collapse identical (id + message) findings so one cause surfaces once with an
-  // occurrence count, instead of N duplicate rows burying the actionable ones.
-  const findings = dedupeFindings(allFindings)
-  const occurrenceTotal = allFindings.length
-
-  const errors   = findings.filter(f => f.severity === 'E')
-  const warnings = findings.filter(f => f.severity === 'W')
-  const infos    = findings.filter(f => f.severity === 'I')
-  const exitCode = errors.length > 0 ? 2 : warnings.length > 0 ? 1 : 0
+  // Loading, running, sorting and deduping live in lib/run-checks.mjs so that
+  // `truss status` can compute health from exactly the same run — it used to
+  // read a cached, undated .truss/out/doctor.json instead, which on a fresh
+  // clone reported "unknown" forever and otherwise could contradict a doctor
+  // run from a minute earlier without saying so.
+  const { registry, findings, occurrenceTotal, suppressed, unapplied, errors, warnings, infos, exitCode } =
+    await runAllChecks(ctx)
 
   // ── JSON output ─────────────────────────────────────────────────────────
   if (wantJson) {
@@ -363,15 +358,22 @@ code{background:#eee;padding:2px 6px;border-radius:4px;font-size:14px}</style></
       root,
       version: getVersion(),
       gate,
-      summary: { errors: errors.length, warnings: warnings.length, infos: infos.length, total: findings.length, occurrences: occurrenceTotal },
+      summary: { errors: errors.length, warnings: warnings.length, infos: infos.length, total: findings.length, occurrences: occurrenceTotal, suppressed: suppressed.length, unapplied: unapplied.length },
+      // A marker that silenced nothing is exactly what a tooling consumer needs to
+      // see: it looks like a decision in the file and has no effect.
+      unappliedMarkers: unapplied,
       scan: ctx.ignore,        // { sources: [...], excluded: n } — what the ignore layer dropped
       checks: registry,        // full catalog of all checks (A2), independent of what fired
       findings,                // deduped: each carries occurrences + locations
     }
+    const json = JSON.stringify(report, null, 2)
+    // See the note in the uninitialised branch above: stdout is the contract a
+    // `--json` flag implies, the file is the extra.
+    console.log(json)
     const outDir  = path.join(root, '.truss', 'out')
     const outFile = path.join(outDir, 'doctor.json')
     await fs.mkdir(outDir, { recursive: true })
-    await fs.writeFile(outFile, JSON.stringify(report, null, 2), 'utf8')
+    await fs.writeFile(outFile, json, 'utf8')
     console.error('Report written to .truss/out/doctor.json')
   }
 
@@ -379,7 +381,7 @@ code{background:#eee;padding:2px 6px;border-radius:4px;font-size:14px}</style></
   if (wantHtml) {
     const html = renderHtmlReport({
       root, version: getVersion(), timestamp: new Date().toISOString(), gate,
-      summary: { errors: errors.length, warnings: warnings.length, infos: infos.length, total: findings.length },
+      summary: { errors: errors.length, warnings: warnings.length, infos: infos.length, total: findings.length, suppressed: suppressed.length, unapplied: unapplied.length },
       registry, findings,
     })
     const outDir  = path.join(root, '.truss', 'out')
@@ -410,11 +412,11 @@ code{background:#eee;padding:2px 6px;border-radius:4px;font-size:14px}</style></
       }
       console.log(lines.join('\n'))
     }
-    process.exit(exitCode)
+    await exitFlushed(exitCode)
   }
 
   // JSON/HTML report modes are non-interactive: exit once the file(s) are written.
-  if (wantJson || wantHtml) process.exit(exitCode)
+  if (wantJson || wantHtml) await exitFlushed(exitCode)
 
   // ── Human-readable output ────────────────────────────────────────────────
   const now = new Date().toISOString().replace('T', ' ').slice(0, 16)
@@ -454,9 +456,45 @@ code{background:#eee;padding:2px 6px;border-radius:4px;font-size:14px}</style></
       ? `  ${findings.length} finding${findings.length !== 1 ? 's' : ''}${occNote} (${parts.join(', ')})\n`
       : '  0 findings\n'
   )
+  // Silenced findings are counted on screen, never dropped in silence: a marker
+  // is a decision somebody made once, and the next reader has to be able to see
+  // that decisions are in force without going looking for them.
+  if (suppressed.length > 0) {
+    const byId = [...new Set(suppressed.map(f => f.id))].sort().join(', ')
+    console.log(`  ${suppressed.length} info finding${suppressed.length !== 1 ? 's' : ''} silenced by a marker in the file it is about (${byId}).\n`)
+  }
+  for (const u of unapplied) {
+    console.log(
+      `  ${col('I', 'note')}     the ${u.id} marker in ${u.file} did not apply: ${u.matches} ${u.id} findings are open on that file, ` +
+      `and one reason cannot answer them all. Resolve the others, or remove the marker.\n`
+    )
+  }
   if (errors.length > 0) console.log('  Run with --fix-prompt for a copyable remediation prompt.\n')
 
-  process.exit(exitCode)
+  // Parallel sessions (D-101) — the second place this block fires, and the
+  // reason it fires twice: AGENTS.md §4 puts `doctor` immediately before the
+  // "done" report, which is the point at which a session is most likely to
+  // commit and least likely to still be following a rule it read at the start.
+  //
+  // No git here, on purpose. `status` owns the git-shaped half (foreign
+  // uncommitted paths, HEAD movement); this end only compares the core state
+  // files by hash and counts live sessions, so nothing in the doctor path
+  // learns to run git. Reached only in the human-readable mode — the --json,
+  // --html and --fix-prompt branches all exit above, so machine output is never
+  // polluted. It reports; it never changes `exitCode`, so `doctor --gate`
+  // cannot start failing because a colleague is present.
+  try {
+    const { observe, presenceLines } = await import('../lib/presence.mjs')
+    const obs = await observe(root, { head: null, dirty: [] })
+    const lines = presenceLines(obs, { gitAvailable: false })
+    if (lines.length > 0) {
+      console.log(`  ${col('W', 'parallel')}  ${lines[0]}`)
+      for (const l of lines.slice(1)) console.log(`            ${l}`)
+      console.log('')
+    }
+  } catch { /* never let the presence layer take doctor down */ }
+
+  await exitFlushed(exitCode)
 }
 
 // ── render ────────────────────────────────────────────────────────────────────
@@ -471,7 +509,7 @@ async function runAck(args) {
   const target = args[0]
   if (target !== 'context') {
     console.error(`truss ack: unknown target '${target ?? ''}'. Usage: truss ack context [--note "…"] [--clear]`)
-    process.exit(1)
+    await exitFlushed(1)
   }
 
   const { writeContextAck, clearContextAck, ACK_HEADROOM, ACK_REL_PATH } = await import('../lib/context-ack.mjs')
@@ -486,29 +524,21 @@ async function runAck(args) {
       // Never report a failed delete as "nothing to clear": the baseline would
       // still be silencing the warning while the human believes it is gone.
       console.error(`truss ack: could not remove ${ACK_REL_PATH} — the baseline is STILL in effect. Delete the file manually.`)
-      process.exit(2)
+      await exitFlushed(2)
     }
     return
   }
 
-  // Measure with the SAME code path the check uses, so the recorded baseline and
-  // the number CX-01 judges can never be computed differently.
-  const { CONTEXT_FILES, wordCount, toTokens, phaseReadTargets, WARN_TOKENS, ERROR_TOKENS } = await import('../lib/context-budget.mjs')
+  // The SAME function CX-01 measures with — not a second implementation of the
+  // same idea. The two were separate until §1 started contributing files, at
+  // which point `ack` could answer "already under the threshold" about a warning
+  // CX-01 was still printing: a finding that cannot be cleared, which is the one
+  // outcome this whole mechanism exists to prevent.
+  const { measureBootContext, WARN_TOKENS, ERROR_TOKENS } = await import('../lib/context-budget.mjs')
   const ctx = await loadWorkspace(root)
-
-  let words = 0
-  const seen = new Set()
-  const addRel = async (rel) => {
-    if (seen.has(rel)) return
-    seen.add(rel)
-    const f = ctx.files.get(rel)
-    if (f) { words += wordCount(f.content); return }
-    try { words += wordCount(await fs.readFile(path.join(root, rel), 'utf8')) } catch { /* missing — ignore */ }
-  }
-  for (const rel of CONTEXT_FILES) await addRel(rel)
-  for (const rel of phaseReadTargets(ctx.phases)) await addRel(rel)
-
-  const tokens = toTokens(words)
+  const { tokens } = await measureBootContext(ctx, async (rel) => {
+    try { return await fs.readFile(path.join(root, rel), 'utf8') } catch { return null }
+  })
 
   if (tokens < WARN_TOKENS) {
     console.log(`truss ack: boot context ≈ ${tokens} tokens — already under the ${WARN_TOKENS} warn threshold, nothing to acknowledge.`)
@@ -516,7 +546,7 @@ async function runAck(args) {
   }
   if (tokens >= ERROR_TOKENS) {
     console.error(`truss ack: boot context ≈ ${tokens} tokens is at or above the ${ERROR_TOKENS} error band — an ack does not silence an error. Trim it first (\`cleanup\` prompt).`)
-    process.exit(1)
+    await exitFlushed(1)
   }
 
   const noteIdx = args.indexOf('--note')
@@ -539,7 +569,7 @@ async function runRender() {
     ctx = await loadWorkspace(root)
   } catch (err) {
     console.error(`truss render: failed to load workspace — ${err.message}`)
-    process.exit(2)
+    await exitFlushed(2)
   }
 
   await renderPhaseInto(ctx)
@@ -555,7 +585,7 @@ async function renderDecisionsIndex() {
     result = await writeIndex(root)
   } catch (err) {
     console.error(`truss render: failed to write ${INDEX_REL} — ${err.message}`)
-    process.exit(2)
+    await exitFlushed(2)
   }
   if (result === null) {
     console.log(`truss render: no decision log (${DECISIONS_DIR}/ or ${SOURCE_REL}) — index not written.`)
@@ -587,13 +617,13 @@ async function renderPhaseInto(ctx) {
     if (phasesPresent) {
       console.error('truss render: state/phases.md exists but could not be read — the phase block was left unchanged.')
       console.error('  Make it a readable UTF-8 file, or remove it to run this workspace without a phase model.')
-      process.exit(2)
+      await exitFlushed(2)
     }
     try {
       await writeBlock(agentsMdPath, 'phase', renderNoPhasesBlock())
     } catch (err) {
       console.error(`truss render: failed to write block — ${err.message}`)
-      process.exit(2)
+      await exitFlushed(2)
     }
     console.log('truss render: no state/phases.md — phase block set to the no-phases notice.')
     console.log('  Add state/phases.md (e.g. from .truss/phase-profiles/) and re-run to enable phases.')
@@ -606,7 +636,7 @@ async function renderPhaseInto(ctx) {
   if (!currentId || !defs.has(currentId)) {
     const known = [...defs.keys()].join(', ')
     console.error(`truss render: current phase '${currentId}' not found in phases.md (defined: ${known})`)
-    process.exit(2)
+    await exitFlushed(2)
   }
 
   const phaseDef = defs.get(currentId)
@@ -619,7 +649,7 @@ async function renderPhaseInto(ctx) {
     console.log(`truss render: phase block updated (${currentId}, ${position}/${total})`)
   } catch (err) {
     console.error(`truss render: failed to write block — ${err.message}`)
-    process.exit(2)
+    await exitFlushed(2)
   }
 }
 
@@ -628,14 +658,14 @@ async function runSet(keyArg, valueArg) {
   if (!keyArg || !valueArg) {
     console.error('Usage: truss set <key> <value>')
     console.error(`Known keys: ${PREFS_CATALOG.map(e => e.key).join(', ')}`)
-    process.exit(1)
+    await exitFlushed(1)
   }
 
   // Validate key
   if (!CATALOG_KEYS.has(keyArg)) {
     console.error(`truss set: unknown key '${keyArg}'`)
     console.error(`Known keys: ${PREFS_CATALOG.map(e => e.key).join(', ')}`)
-    process.exit(1)
+    await exitFlushed(1)
   }
 
   // Validate value
@@ -643,14 +673,14 @@ async function runSet(keyArg, valueArg) {
   if (isFree) {
     if (!isValidFreeValue(valueArg)) {
       console.error(`truss set: invalid value '${valueArg}' for key '${keyArg}' (expected 'off' or a short word)`)
-      process.exit(1)
+      await exitFlushed(1)
     }
   } else {
     const validValues = CATALOG_KEYS.get(keyArg)
     if (!validValues.has(valueArg)) {
       console.error(`truss set: invalid value '${valueArg}' for key '${keyArg}'`)
       console.error(`Valid values: ${[...validValues].join(', ')}`)
-      process.exit(1)
+      await exitFlushed(1)
     }
   }
 
@@ -671,7 +701,7 @@ async function runSet(keyArg, valueArg) {
     if (!behaviorText) {
       console.error(`truss set: no behavior template found for '${keyArg}/${valueArg}'`)
       console.error(`Expected at: .truss/prefs/${keyArg}/${valueArg}.md`)
-      process.exit(2)
+      await exitFlushed(2)
     }
   }
 
@@ -681,7 +711,7 @@ async function runSet(keyArg, valueArg) {
     ctx = await loadWorkspace(root)
   } catch (err) {
     console.error(`truss set: failed to load workspace — ${err.message}`)
-    process.exit(2)
+    await exitFlushed(2)
   }
 
   const prefsBlock = ctx.blocks?.get('preferences')
@@ -721,7 +751,7 @@ async function runSet(keyArg, valueArg) {
     }
   } catch (err) {
     console.error(`truss set: failed to write block — ${err.message}`)
-    process.exit(2)
+    await exitFlushed(2)
   }
 }
 
@@ -755,17 +785,17 @@ const HANDLERS = {
 const THROWS_TO_EXIT_2 = new Set(['init', 'upgrade', 'phase', 'skills', 'split-decisions'])
 
 if (!command || ['help', '--help', '-h'].includes(command)) {
-  showHelp(); process.exit(0)
+  showHelp(); await exitFlushed(0)
 }
 
 if (['--version', '-v', 'version'].includes(command)) {
-  console.log(`truss ${getVersion()}`); process.exit(0)
+  console.log(`truss ${getVersion()}`); await exitFlushed(0)
 }
 
 const handler = HANDLERS[command]
 if (!handler) {
   console.error(`truss: unknown command '${command}'. Run 'node .truss/bin/truss.mjs help'.`)
-  process.exit(1)
+  await exitFlushed(1)
 }
 
 // Argument gate (D-060). Every command validates its own flags here, from the
@@ -775,17 +805,17 @@ if (!handler) {
 const meta = COMMAND_BY_NAME.get(command)
 if (meta) {
   const verdict = inspectArgs(meta, args)
-  if (verdict.help) { showCommandHelp(meta); process.exit(0) }
+  if (verdict.help) { showCommandHelp(meta); await exitFlushed(0) }
   if (verdict.unknown) {
     console.error(`truss ${command}: unknown argument '${verdict.unknown}'.`)
     console.error(`Run 'node .truss/bin/truss.mjs ${command} --help'.`)
-    process.exit(1)
+    await exitFlushed(1)
   }
 }
 
 if (THROWS_TO_EXIT_2.has(command)) {
   try { await handler(args) }
-  catch (err) { console.error(err.message); process.exit(2) }
+  catch (err) { console.error(err.message); await exitFlushed(2) }
 } else {
   await handler(args)
 }

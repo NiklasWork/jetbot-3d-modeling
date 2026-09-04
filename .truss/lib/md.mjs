@@ -70,13 +70,24 @@ export function parsePhaseList(value) {
  * arrives here as "\n- alpha\n- beta" — that leading newline is why the test
  * below allows one.
  *
- * Inline YAML (`next: [a, b]`) is deliberately NOT supported: it would fall
- * through to parsePhaseList and yield ['[a', 'b]'], i.e. parse silently wrong.
- * docs/conventions.md names the two supported forms instead.
+ * Inline YAML (`next: [a, b]`) is accepted as a third form. It used to fall
+ * through to parsePhaseList and yield ['[a', 'b]'] — two entries whose text is
+ * corrupt, with nothing reporting it: the count stayed plausible while every
+ * value carried a stray bracket. It is the first form a writer reaches for
+ * without checking the docs, so parsing it beats both the silent damage and an
+ * error that teaches nothing. Accepting is purely additive: no file that parses
+ * today changes meaning.
  */
 export function parseFrontmatterList(value) {
   if (!value) return [];
   const raw = String(value);
+  const inline = raw.trim();
+  if (inline.startsWith('[') && inline.endsWith(']')) {
+    // Quotes are part of YAML's inline form, not of the value.
+    return parsePhaseList(inline.slice(1, -1))
+      .map(item => item.replace(/^(['"])(.*)\1$/, '$2').trim())
+      .filter(Boolean);
+  }
   if (/^\n?\s*-\s/.test(raw)) {
     return raw
       .split('\n')
@@ -318,6 +329,34 @@ export function parseIdReferences(lines, classes) {
     }
   }
   return refs;
+}
+
+// Indices of lines inside fenced code blocks (``` or ~~~). Entry-grammar checks
+// skip these so a documented example like `## HT-009 — …` or `## D-001` shown in a
+// code block is not mistaken for a real (malformed) entry. Mirrors parseIdReferences.
+// Lines that look like entries but are not: fenced code blocks AND HTML comment
+// blocks. The baseline state files carry their entry template in a `<!-- ... -->`
+// block (the file is usually empty, so it cannot teach its grammar by example) —
+// without this the template's own "## OD-NNN — [question title]" line would be
+// read as a malformed entry and every fresh workspace would boot with a warning.
+export function ignoredLines(lines) {
+  const inside = new Set()
+  let fence = false
+  let comment = false
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (!comment && /^\s*(```|~~~)/.test(line)) { inside.add(i); fence = !fence; continue }
+    if (fence) { inside.add(i); continue }
+
+    // A comment block only OPENS at the start of a line. Prose that mentions the
+    // syntax mid-sentence ("…deckt `<!-- -->` mit ab") is not a comment, and
+    // treating it as one swallowed the rest of that entry's fields.
+    const opens = /^\s*<!--/.test(line)
+    const closes = /-->/.test(line)
+    if (comment) { inside.add(i); if (closes) comment = false; continue }
+    if (opens) { inside.add(i); if (!closes) comment = true; continue }
+  }
+  return inside
 }
 
 /**

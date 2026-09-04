@@ -97,6 +97,58 @@ export async function repoBranchList(repoDir) {
 }
 
 /**
+ * How long each line of `relPath` has been sitting unchanged, from `git blame`.
+ *
+ * WHY THIS AND NOT A DATE FIELD. A HUMAN-TODOS.md entry is anchored by one
+ * parsed line (`- [ ] HT-NNN — …`), and nothing measured how long one had been
+ * waiting: an external report found a median of ≥38 days with no check able to
+ * see it. The obvious fix — add an `Opened:` field to the class — makes the
+ * lightest entry class heavier and moves the file grammar for a number git
+ * already knows. So this derives it instead, in ONE `git blame` call for the
+ * whole file; the caller blames the entry line, so rewriting a step in the
+ * indented body below it does not reset the number.
+ *
+ * WHAT IT ACTUALLY MEASURES — and the reason callers must not call it "age":
+ * blame reports the last commit that TOUCHED a line, not the one that added it.
+ * Re-word an entry and its clock restarts. The honest reading is "unchanged
+ * since", which is what the caller labels it (`idle Nd`); a caller that prints
+ * it as a creation date would be stating something this data cannot support.
+ *
+ * Never throws — no checkout, no git binary, an untracked file, or a disabled
+ * read (TRUSS_NO_GIT) all resolve to an empty map, and the caller simply prints
+ * no ages. Uncommitted lines blame to the zero sha with the current time, so a
+ * just-written entry correctly shows as fresh.
+ *
+ * @returns {Promise<Map<number, number>>} 1-based line number → author time (ms)
+ */
+export async function fileLineAges(repoDir, relPath) {
+  if (process.env.TRUSS_NO_GIT) return new Map()
+  if (!await isGitCheckout(repoDir)) return new Map()
+  try {
+    const { stdout } = await execFileP(
+      'git', ['-C', repoDir, 'blame', '--line-porcelain', '--', relPath],
+      { timeout: 5000, maxBuffer: 8 << 20 },
+    )
+    const ages = new Map()
+    // Porcelain groups: a header line "<sha> <origLine> <finalLine> [count]"
+    // opens each entry, and `author-time <epoch>` follows within it.
+    let line = null
+    for (const raw of stdout.split('\n')) {
+      // `\^?`: git marks a BOUNDARY commit by prefixing its sha with a caret.
+      // Without this the header simply would not match and those lines would
+      // quietly have no age — a partial failure that looks like success from the
+      // inside (`L-011`), and it is the shallow-clone/limited-range case, not an
+      // exotic one. Content lines are TAB-prefixed, so they can never match here.
+      const header = raw.match(/^\^?[0-9a-f]{7,40}\s+\d+\s+(\d+)(?:\s+\d+)?$/)
+      if (header) { line = Number(header[1]); continue }
+      const at = raw.match(/^author-time (\d+)$/)
+      if (at && line != null) { ages.set(line, Number(at[1]) * 1000); line = null }
+    }
+    return ages
+  } catch { return new Map() }
+}
+
+/**
  * Return uncommitted paths in a git checkout. Paths include staged, unstaged,
  * untracked, deleted, and both sides of renames. Never throws.
  */

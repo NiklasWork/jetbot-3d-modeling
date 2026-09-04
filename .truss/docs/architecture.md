@@ -23,10 +23,12 @@ accident. Nothing here is published to npm; the directory *is* the distribution.
 │   ├── prefs.mjs        # preferences catalogue (single source of truth)
 │   ├── md.mjs           # markdown parsing helpers
 │   ├── severity.mjs     # E/W/I severity + family metadata
+│   ├── run-checks.mjs   # loads, runs, suppresses, sorts and dedupes every family
+│   ├── suppress.mjs     # a reasoned in-file marker silences one info finding
 │   ├── engine-manifest.mjs # hash + verify the engine's own files (writes and checks MANIFEST.sha256)
 │   ├── defaults.mjs     # default preference rows + behaviour text
 │   └── commands/        # init, status, map, phase, skills, upgrade handlers
-├── checks/              # one module per check family (st, bl, rf, sy, ph, cx, hy)
+├── checks/              # one module per check family (st, bl, rf, sy, ph, cx)
 ├── docs/                # product documentation (concepts, cli, architecture)
 ├── baseline/            # the pristine workspace skeleton `init` scaffolds from
 ├── phase-profiles/      # ready-made phase lists to copy over state/phases.md (not installed)
@@ -108,11 +110,34 @@ and throw typed errors, which the dispatcher maps to exit codes.
 
 - Keep the **zero-dependency** rule: standard library only.
 - A new command → add it to `command-meta.mjs` first.
+- A new check family → add its name to `CHECK_MODULES` in `lib/run-checks.mjs`.
+  That module loads, runs, sorts and dedupes every family, and both `doctor` and
+  `status` go through it — so the family list exists once. A second copy is a
+  list that can silently disagree with the first (`L-006`).
+- A finding whose *message* names the symptom rather than the cause → give it a
+  `dedupeKey`. `dedupeFindings` groups on `id + message` by default, which keeps
+  one cause in one row only while the message is stable across occurrences. RF-01
+  is the counter-example the field is there for: its message carries the link
+  text, so one dead target reached through 33 differently-worded links produced
+  33 rows.
 - A new check → add its `meta` entry and logic to the right family module. If the
   check exists to prevent *silence* — a state where other checks would pass
   having examined nothing — enumerate the partial failures too, not only the
   total one. One bad row in a table is the case that gets missed, and it is the
   likelier one (`L-011`).
+- A check that would turn a previously green workspace red → separate **absent**
+  from **stale**, and let the workspace's own evidence pick the severity: a step
+  not taken is `I`, a thing that exists and lies is `W`. ST-10 is the pattern
+  (index missing → `I`; index present and disagreeing with its source → `W`), and
+  ST-09 the older one (silent without a manifest). Do **not** reach for a
+  severity that switches on a release number instead — that is a second truth
+  next to the files, and it suspends the promise in `release-maturity.md` that an
+  adopter who was green stays green (D-081, D-077).
+- An info check a project may legitimately have to live with → nothing extra to
+  build: `lib/suppress.mjs` runs inside `run-checks.mjs`, so a reasoned
+  `<!-- truss: <id> ok — why -->` in the file already silences it and the run
+  still counts it. Info only, by design — see that module's header before
+  widening it.
 - A change to the workspace format → update `baseline/` and the matching checks
   together.
 - A change to what an entry *is* — a class, a file, a field → `baseline/docs/schema.md`.

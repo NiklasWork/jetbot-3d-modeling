@@ -39,6 +39,17 @@ async function makeRoot(tag) {
 
 const git = (root, ...args) => execFileP('git', ['-C', root, ...args])
 
+// Teardown, not an assertion — removing the temp root must never fail a test.
+// These roots are the only ones in the suite holding a REAL .git with the whole
+// engine copy committed (hundreds of loose objects). On the Linux CI runner,
+// where node --test runs every file in parallel, `fs.rm` intermittently lost the
+// race against a concurrent writer inside .git/objects and threw ENOTEMPTY —
+// four consecutive runs, alternating between Node 20 and 22, never the same
+// test twice. `maxRetries` is the documented remedy for exactly these transient
+// errors and defaults to 0, so the shipped default retries nothing at all.
+const rmRoot = (target) =>
+  fs.rm(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
+
 const captureStatus = async (root) => {
   const output = []
   const originalLog = console.log
@@ -62,7 +73,7 @@ describe('truss status — Recent commits (U6/D-074, replaces recently-done:)', 
       const out = await captureStatus(root)
       assert.match(out, /Recent:/)
       assert.match(out, /chore: initial scaffold/)
-    } finally { await fs.rm(root, { recursive: true, force: true }) }
+    } finally { await rmRoot(root) }
   })
 
   it('lists newest first and caps at 5', async () => {
@@ -81,19 +92,19 @@ describe('truss status — Recent commits (U6/D-074, replaces recently-done:)', 
       assert.equal(noteLines.length, 5, out)
       assert.match(out, /note 6\b/)   // newest kept
       assert.doesNotMatch(out, /note 1\b/) // oldest of the 7 dropped
-    } finally { await fs.rm(root, { recursive: true, force: true }) }
+    } finally { await rmRoot(root) }
   })
 
   it('stays silent, exit unchanged, when the workspace has no git repo', async () => {
     const root = await makeRoot('truss-status-recent-nogit-')
     try {
       await runInit(root, ['--name', 'NoGit', '--lang', 'English'])
-      await fs.rm(path.join(root, '.git'), { recursive: true, force: true })
+      await rmRoot(path.join(root, '.git'))
       const priorExit = process.exitCode
       const out = await captureStatus(root)
       assert.doesNotMatch(out, /Recent:/)
       assert.equal(process.exitCode, priorExit)
-    } finally { await fs.rm(root, { recursive: true, force: true }) }
+    } finally { await rmRoot(root) }
   })
 
   it('stays silent on a git repo with zero commits yet', async () => {
@@ -102,7 +113,7 @@ describe('truss status — Recent commits (U6/D-074, replaces recently-done:)', 
       await runInit(root, ['--name', 'Zero', '--lang', 'English']) // git init only, no commit
       const out = await captureStatus(root)
       assert.doesNotMatch(out, /Recent:/)
-    } finally { await fs.rm(root, { recursive: true, force: true }) }
+    } finally { await rmRoot(root) }
   })
 
   it('stays silent under TRUSS_NO_GIT, exit unchanged', async () => {
@@ -119,6 +130,6 @@ describe('truss status — Recent commits (U6/D-074, replaces recently-done:)', 
       delete process.env.TRUSS_NO_GIT
       assert.doesNotMatch(out, /Recent:/)
       assert.equal(process.exitCode, priorExit)
-    } finally { await fs.rm(root, { recursive: true, force: true }) }
+    } finally { await rmRoot(root) }
   })
 })

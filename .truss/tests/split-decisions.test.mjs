@@ -10,6 +10,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { runSplitDecisions } from '../lib/commands/split-decisions.mjs'
 import {
@@ -20,6 +21,13 @@ import { runInit } from '../lib/commands/init.mjs'
 import { makeRoot, runChecks, errorsOf } from './helpers.mjs'
 
 const ids = (findings, id) => findings.filter(f => f.id === id)
+
+// This file lives at <repo>/.truss/tests/split-decisions.test.mjs → ENGINE_DIR = <repo>/.truss
+// fileURLToPath, never `new URL(...).pathname`: on Windows the latter yields
+// '/D:/a/…', which path.join turns into a drive-relative 'D:\D:\a\…' — the file
+// then does not exist and the test fails for a reason that has nothing to do
+// with what it asserts. Same derivation as tests/helpers.mjs.
+const ENGINE_DIR = path.join(fileURLToPath(import.meta.url), '..', '..')
 
 const PREAMBLE = `# Decisions
 
@@ -224,16 +232,14 @@ describe('split-decisions — dispatch and documentation', () => {
     // runs, and `truss help` alone does not explain what it costs or protects.
     const { COMMAND_META } = await import('../lib/command-meta.mjs')
     assert.ok(COMMAND_META.find(c => c.name === 'split-decisions'), 'missing from COMMAND_META')
-    const cli = await fs.readFile(
-      path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'docs', 'cli.md'), 'utf8')
+    const cli = await fs.readFile(path.join(ENGINE_DIR, 'docs', 'cli.md'), 'utf8')
     assert.match(cli, /^## `split-decisions`$/m)
   })
 
   it('is named by the upgrade report, the one place an adopter is looking', async () => {
     // `upgrade` never writes state/, so this migration cannot be applied there.
     // If the report does not name it, the change is invisible to every adopter.
-    const src = await fs.readFile(
-      path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'lib', 'commands', 'upgrade.mjs'), 'utf8')
+    const src = await fs.readFile(path.join(ENGINE_DIR, 'lib', 'commands', 'upgrade.mjs'), 'utf8')
     assert.match(src, /split-decisions/)
   })
 })

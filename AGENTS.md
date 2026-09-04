@@ -43,7 +43,7 @@ Routing policy: which file owns what. Not a file inventory — that is `state/ma
 | state/learnings.md (on demand) | A | systemic agent/framework weaknesses — not a product bug log |
 | state/truss-findings.md (on demand) | A | friction with Truss itself from long-term use — logic errors, unclean rules, rules that break long-term, context cost; when Truss, not your project, causes extra work or awkwardness, record it there for upstream feedback |
 | state/map.md (on demand) | S | auto-generated domain map with read-cost estimates; read-only |
-| HUMAN-TODOS.md (on demand) | A→H | only what **you cannot execute**: access you lack, acting under the human's identity, a physical/legal act, or a sign-off the protocol reserves. Could you do it with the tools you have? Then it is not an HT — route it to `next:` or the owning file; a judgment call is an OD. HT-NNN, ≤2 lines; full test in docs/conventions.md; settled `[x]` → archive/human-todos.md |
+| HUMAN-TODOS.md (on demand) | A→H | only what **you cannot execute**: access you lack, acting under the human's identity, a physical/legal act, or a sign-off the protocol reserves. Could you do it with the tools you have? Then it is not an HT — route it to `next:` or the owning file; a judgment call is an OD. HT-NNN carries numbered steps and `Done when:` and must be executable from the entry alone — never `see D-NNN` where the instruction belongs; template + full test in docs/conventions.md; settled `[x]` → archive/human-todos.md |
 | docs/ | A | working docs (schema · conventions · protocols · git · import) — read per §6 |
 | context/ (on demand) | H+A | domain (topic) files — one canonical home per topic (`context/<domain>.md`) |
 | archive/ (on demand) | A | superseded material with one-line invalidation note |
