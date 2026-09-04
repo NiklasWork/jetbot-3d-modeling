@@ -31,7 +31,7 @@ Every stage is demonstrable on its own. No stage depends on a later one.
 
 Separate repos, separate runtime, separately demonstrable (D-011). They meet at exactly one point: the folder with images that the robot generates and the pipeline reads.
 
-| | `repos/pipeline-3d/` | `repos/roboter/` |
+| | `repos/pipeline-3d/` | `repos/robot/` |
 |---|---|---|
 | Runs on | MacBook M4, macOS | JetBot, Ubuntu 18.04 |
 | Language | Python 3.14 / Shell | **Python 3.6** — no walrus, no dataclasses |

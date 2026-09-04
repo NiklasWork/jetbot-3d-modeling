@@ -7,7 +7,7 @@
 | File | Title | Description | ~Tokens |
 |---|---|---|---|
 | `AGENTS.md` | AGENTS.md | Boot file for all AI agents in this workspace (open agents.md standard, tool-agnostic). | ~4.1k |
-| `ANWENDUNGSVISION.md` | Application Vision | How the project feels when it's running — written for humans. The concise strategic version is in VISION.md, the reasoning in state/decisions/. | ~1.9k |
+| `APPLICATION-VISION.md` | Application Vision | How the project feels when it's running — written for humans. The concise strategic version is in VISION.md, the reasoning in state/decisions/. | ~1.9k |
 | `HUMAN-TODOS.md` | Human Todos | Only what an agent cannot execute: access it lacks, acting under the human's identity, a physical or legal act, or a sign-off the protocol reserves. Everything else belongs in `state/current.md` `next:` or the owning file; a judgment call is an OD. Settled `[x]` entries move to `archive/human-todos.md`. | ~260 |
 | `README.md` | JetBot 3D Modeling | *[No description]* | ~350 |
 | `VISION.md` | JetBot 3D Modeling — Vision | Strategic anchor. Headings provide structure. | ~440 |
@@ -16,11 +16,11 @@
 
 | File | Title | Description | ~Tokens |
 |---|---|---|---|
-| `context/architektur.md` | Architecture | Belongs here: Role division of the machines, the two development branches, and the staged plan. Not here: tool choice (state/decisions/), open questions (state/open-decisions.md). | ~1.1k |
+| `context/architecture.md` | Architecture | Belongs here: Role division of the machines, the two development branches, and the staged plan. Not here: tool choice (state/decisions/), open questions (state/open-decisions.md). | ~1.1k |
 | `context/glossary.md` | Glossary | *[No description]* | ~290 |
 | `context/messwerte.md` | Messwerte | Belongs here: gemessene Laufzeiten und Größen auf der echten Hardware, mit Messbedingung. Not here: Werkzeugbegründungen (state/decisions/), Planung (context/plan-*.md). | ~530 |
-| `context/plan-pipeline-3d.md` | Plan pipeline-3d | Belongs here: the path from today to the first prototype of the Mac branch. Not here: tool choice rationales (state/decisions/), robot work (context/plan-roboter.md). | ~530 |
-| `context/plan-roboter.md` | Plan roboter | Belongs here: the path from today to the first prototype of the JetBot branch. Not here: hardware facts (context/architektur.md), Mac work (context/plan-pipeline-3d.md). | ~460 |
+| `context/plan-pipeline-3d.md` | Plan pipeline-3d | Belongs here: the path from today to the first prototype of the Mac branch. Not here: tool choice rationales (state/decisions/), robot work (context/plan-robot.md). | ~530 |
+| `context/plan-robot.md` | Plan roboter | Belongs here: the path from today to the first prototype of the JetBot branch. Not here: hardware facts (context/architecture.md), Mac work (context/plan-pipeline-3d.md). | ~460 |
 
 ## /docs
 

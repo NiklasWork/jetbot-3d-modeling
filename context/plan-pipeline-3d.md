@@ -9,7 +9,7 @@ blockers: none
 
 # Plan pipeline-3d
 
-> Belongs here: the path from today to the first prototype of the Mac branch. Not here: tool choice rationales (state/decisions/), robot work (context/plan-roboter.md).
+> Belongs here: the path from today to the first prototype of the Mac branch. Not here: tool choice rationales (state/decisions/), robot work (context/plan-robot.md).
 
 **Prototype reached when:** a folder with photos becomes a `.sog` through one command, which is navigable in the browser — without robot, without manual work in between.
 

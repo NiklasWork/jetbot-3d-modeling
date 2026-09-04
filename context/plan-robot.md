@@ -9,7 +9,7 @@ blockers: none
 
 # Plan roboter
 
-> Belongs here: the path from today to the first prototype of the JetBot branch. Not here: hardware facts (context/architektur.md), Mac work (context/plan-pipeline-3d.md).
+> Belongs here: the path from today to the first prototype of the JetBot branch. Not here: hardware facts (context/architecture.md), Mac work (context/plan-pipeline-3d.md).
 
 **Prototype reached when:** a controlled drive through a room section generates a folder of sharp images that pipeline-3d processes without manual rework.
 

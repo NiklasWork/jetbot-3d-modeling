@@ -1,7 +1,7 @@
 ## Project
 
 name: JetBot 3D Modeling
-language: German
+language: English
 code-root:
 <!-- optional relative directory holding the work product; overlay default repo/; empty = none -->
 pm-method: kanban

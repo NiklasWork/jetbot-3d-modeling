@@ -68,7 +68,7 @@ The project consists of **two separate developments** that run in parallel and m
 
 ```mermaid
 graph TD
-    R["repos/roboter<br/>Ubuntu 18.04 · Python 3.6"] -->|Images + Detections| S(("📁"))
+    R["repos/robot<br/>Ubuntu 18.04 · Python 3.6"] -->|Images + Detections| S(("📁"))
     S --> P["repos/pipeline-3d<br/>macOS · COLMAP + Brush"]
     style R fill:#e8f4ea,stroke:#4a7c59,color:#000
     style P fill:#e8eef8,stroke:#3d5a8a,color:#000
