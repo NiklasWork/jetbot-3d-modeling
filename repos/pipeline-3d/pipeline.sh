@@ -87,7 +87,11 @@ for t in colmap npx "$BRUSH"; do
   command -v "$t" >/dev/null 2>&1 || [ -x "$t" ] || die "not executable: $t"
 done
 
-OUT="${OUT:-runs/$(basename "$IMAGES")}"
+NAME="$(basename "$IMAGES")"
+case "$NAME" in
+  images|imgs|input|photos) NAME="$(basename "$(dirname "$IMAGES")")";;
+esac
+OUT="${OUT:-runs/$NAME}"
 mkdir -p "$OUT"; OUT="$(cd "$OUT" && pwd)"
 if [ "$FORCE" -eq 1 ]; then rm -rf "$OUT/colmap" "$OUT/undistorted" "$OUT/model.ply" \
                                 "$OUT/model.sog" "$OUT/model.html"; fi
@@ -102,15 +106,23 @@ START=$(date +%s)
 # ── stage 1: structure from motion ──────────────────────────────────────────
 if [ ! -d "$OUT/undistorted/sparse" ]; then
   say "sfm" "COLMAP: features → $MATCHER_CMD → $MAPPER_CMD → undistort"
-  mkdir -p "$OUT/colmap/sparse"
+  mkdir -p "$OUT/colmap"
 
-  [ -f "$OUT/colmap/db.db" ] || {
+  # Features depend only on the images, so they survive a retry.
+  if [ ! -f "$OUT/colmap/db.db" ]; then
     colmap feature_extractor \
       --database_path "$OUT/colmap/db.db" --image_path "$IMAGES" \
       --ImageReader.single_camera 1 --ImageReader.camera_model "$CAMERA"
-    colmap "$MATCHER_CMD" --database_path "$OUT/colmap/db.db"
-  }
+  fi
 
+  # Matching always runs: retrying a thin graph with --matcher exhaustive is the
+  # documented recovery, and skipping it here would silently reuse the matches
+  # that just failed. COLMAP skips pairs it already holds, so this only adds.
+  colmap "$MATCHER_CMD" --database_path "$OUT/colmap/db.db"
+
+  # Start the reconstruction from an empty directory — otherwise a retry reads
+  # the fragments of the attempt before it and reports them as its own.
+  rm -rf "$OUT/colmap/sparse"; mkdir -p "$OUT/colmap/sparse"
   colmap "$MAPPER_CMD" \
     --database_path "$OUT/colmap/db.db" --image_path "$IMAGES" \
     --output_path "$OUT/colmap/sparse"
@@ -170,6 +182,6 @@ cat <<EOF
 
 ════ done in $(( ($(date +%s) - START) / 60 )) min $(( ($(date +%s) - START) % 60 )) s
      model.ply   $(h "$OUT/model.ply")
-     model.sog   $(h "$OUT/model.sog")   → viewer/index.html?content=model.sog
+     model.sog   $(h "$OUT/model.sog")   → for hosting next to a viewer later
      model.html  $(h "$OUT/model.html")  → open it, that is the whole viewer
 EOF
