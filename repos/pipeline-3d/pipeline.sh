@@ -22,7 +22,7 @@ FORCE=0
 OUT=""
 
 die(){ echo "pipeline: $*" >&2; exit 1; }
-say(){ printf '\n\033[1m▸ %s\033[0m  %s\n' "$1" "$(date +%H:%M:%S)"; }
+say(){ printf '\n\033[1m▸ %-9s\033[0m %s   %s\n' "$1" "$2" "$(date +%H:%M:%S)"; }
 
 usage(){ sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; cat <<'EOF'
 
@@ -62,7 +62,7 @@ done
 
 [ -d "$IMAGES" ] || die "not a directory: $IMAGES"
 IMAGES="$(cd "$IMAGES" && pwd)"
-NIMG=$(find "$IMAGES" -maxdepth 1 -type f \
+NIMG=$(find "$IMAGES" -type f \
        \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) | wc -l | tr -d ' ')
 [ "$NIMG" -ge 20 ] || die "found $NIMG images in $IMAGES — reconstruction needs at least ~20"
 
@@ -170,7 +170,7 @@ fi
 if [ "$STOP_AFTER" = train ]; then echo "stopped after train"; exit 0; fi
 
 # ── stage 3: compress and package a viewer ──────────────────────────────────
-say "compress" ".sog for the viewer, .html to hand around"
+say "compress" "splat-transform: .sog, then a self-contained .html"
 npx -y "@playcanvas/splat-transform@$SPLAT_TRANSFORM_VERSION" \
     "$OUT/model.ply" --morton-order "$OUT/model.sog" --overwrite
 npx -y "@playcanvas/splat-transform@$SPLAT_TRANSFORM_VERSION" \
