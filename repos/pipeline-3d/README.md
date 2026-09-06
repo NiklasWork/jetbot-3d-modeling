@@ -76,6 +76,8 @@ A failure here is a capture problem. No setting downstream repairs it.
   tool choice does not.
 - The MacBook Air has no fan. `full` at 8000 steps runs about 16 minutes under load —
   measured as safe on an open, ventilated machine, not in a bag.
+- Indoor scenes come out hazy: large translucent splats in front of the geometry, with
+  the viewer's opening camera inside them. `--filter-floaters` does not remove these.
 - `model.html` inlines the model, so it grows with it: 12 MiB for a 400 k-splat scene.
   For anything larger, serve `model.sog` next to a viewer instead.
 

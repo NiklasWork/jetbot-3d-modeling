@@ -121,6 +121,22 @@ Feature extraction never matters: 11–15 s for 250–263 images at ~10,000 SIFT
 
 `pipeline.sh` therefore defaults to sequential + incremental and aborts with the fallback named when the graph turns out thin.
 
+### Indoor, through the whole pipeline
+
+Deep Blending's two indoor scenes, run through `pipeline.sh` as a user would.
+
+| Dataset | Matcher | Registered | Whole run | `.sog` |
+|---|---|---|---:|---:|
+| playroom, 225 | sequential | 171 (76 %), 1 model | 3 min 28 s | 6.0 MiB |
+| drjohnson, 263 | sequential | 71 (26 %), 8 fragments | aborted at the gate | — |
+| drjohnson, 263 | exhaustive | **263 (100 %), 1 model** | 7 min 5 s ¹ | 6.8 MiB |
+
+¹ Most pairs were already in the database from an interrupted attempt. Cold, add the ~14 min of exhaustive matching: about 20 minutes.
+
+**The documented recovery works.** drjohnson fails the gate on the defaults and passes it completely on the retry the error message prescribes — the same 263 of 263 the standalone benchmark reached. playroom clears 70 % on sequential matching alone, so indoor handheld stills are not uniformly hostile to it; drjohnson's numbering gaps are.
+
+**Indoor models come out hazy, and `--filter-floaters` does not fix it.** The drjohnson model is recognisable — pictures, chair, rug, floorboards — but large translucent splats sit in front of the scene and the viewer's opening camera starts inside them. At its default `0.05,0.1,0.004` the filter removed 0.5 % of the file (7.14 → 7.10 MiB) and changed nothing visible: this haze is not disconnected floaters but big low-opacity splats that do overlap the geometry. Untested hypothesis, worth one run when it matters: the `fast` preset's 400 k cap under-resolves white indoor surfaces, and `full` would tighten them. Not worth tuning against someone else's living room — the scene to tune against is ours.
+
 ### The whole pipeline end to end
 
 `pipeline.sh` on the raw truck images with its defaults — sequential matcher, incremental mapper, `fast` preset. No poses from the dataset: COLMAP recomputed them.
