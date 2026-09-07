@@ -48,6 +48,7 @@ pinned version through `npx`.
 | `--mapper incremental\|global` | `incremental` is faster and more accurate on a good match graph. `global` registers more images off a thin one, but constrains them badly. |
 | `--camera MODEL` | COLMAP camera model. `OPENCV` for a normal lens, `OPENCV_FISHEYE` for the JetBot's 160° camera. |
 | `--viewer` | Brush's live training viewer — the model assembling itself, which is the point of the presentation. |
+| `--probe` | Verdict only, into `runs/<name>-probe`: the same images at 1000 px, poses only, no undistortion, no training. Answers *will this reconstruct?* for a fraction of the cost. Resolution is the lever, never image count — dropping images would destroy the overlap the probe exists to measure. A probe that passes means the real run passes; a probe that fails means look closer, not start over. Nothing it computes is reused, so on a capture method that already works it is pure overhead. |
 | `--stop-after sfm\|train\|compress` | |
 | `--out DIR` | Default `runs/<folder name>`. |
 

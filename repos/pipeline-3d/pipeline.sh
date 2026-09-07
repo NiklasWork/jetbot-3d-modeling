@@ -19,6 +19,7 @@ MAPPER="incremental"
 STOP_AFTER="compress"
 VIEWER=0
 FORCE=0
+PROBE=0
 OUT=""
 
 die(){ echo "pipeline: $*" >&2; exit 1; }
@@ -37,6 +38,11 @@ Options
   --stop-after sfm|train|compress
   --viewer            open Brush's live viewer during training
   --force             recompute stages whose output already exists
+  --probe             verdict only, into runs/<name>-probe: the same images at
+                      1000 px, poses only, no undistortion, no training. Answers
+                      "will this dataset reconstruct?" for a fraction of the
+                      cost. A probe that passes means the real run passes; a
+                      probe that fails means look closer, not start over
 EOF
 exit 0; }
 
@@ -55,6 +61,7 @@ while [ $# -gt 0 ]; do
     --stop-after) STOP_AFTER="$2"; shift 2;;
     --viewer)     VIEWER=1; shift;;
     --force)      FORCE=1; shift;;
+    --probe)      PROBE=1; shift;;
     -h|--help)    usage;;
     *)            die "unknown option: $1";;
   esac
@@ -91,6 +98,7 @@ NAME="$(basename "$IMAGES")"
 case "$NAME" in
   images|imgs|input|photos) NAME="$(basename "$(dirname "$IMAGES")")";;
 esac
+if [ "$PROBE" -eq 1 ]; then NAME="$NAME-probe"; fi
 OUT="${OUT:-runs/$NAME}"
 mkdir -p "$OUT"; OUT="$(cd "$OUT" && pwd)"
 if [ "$FORCE" -eq 1 ]; then rm -rf "$OUT/colmap" "$OUT/undistorted" "$OUT/model.ply" \
@@ -109,10 +117,17 @@ if [ ! -d "$OUT/undistorted/sparse" ]; then
   mkdir -p "$OUT/colmap"
 
   # Features depend only on the images, so they survive a retry.
+  # A probe trades feature count for time. Resolution is the only honest lever
+  # here: dropping images would destroy the very overlap the probe measures.
+  SIFT_ARGS=()
+  if [ "$PROBE" -eq 1 ]; then
+    SIFT_ARGS=(--SiftExtraction.max_image_size 1000 --SiftExtraction.max_num_features 4096)
+  fi
   if [ ! -f "$OUT/colmap/db.db" ]; then
     colmap feature_extractor \
       --database_path "$OUT/colmap/db.db" --image_path "$IMAGES" \
-      --ImageReader.single_camera 1 --ImageReader.camera_model "$CAMERA"
+      --ImageReader.single_camera 1 --ImageReader.camera_model "$CAMERA" \
+      "${SIFT_ARGS[@]}"
   fi
 
   # Matching always runs: retrying a thin graph with --matcher exhaustive is the
@@ -141,11 +156,30 @@ if [ ! -d "$OUT/undistorted/sparse" ]; then
   echo "     registered $REG of $NIMG images ($(( REG * 100 / NIMG ))%) in the largest of $NSUB model(s)"
   if [ "$NSUB" -gt 1 ]; then echo "     warning: the scene broke into $NSUB fragments; only the largest is used"; fi
   if [ "$REG" -lt $(( NIMG * 70 / 100 )) ] || [ "$NSUB" -gt 3 ]; then
-    die "$REG of $NIMG images registered across $NSUB model(s) — the match graph is too thin.
+    PROBE_NOTE=""
+    if [ "$PROBE" -eq 1 ]; then
+      PROBE_NOTE="
+     This was a probe at 1000 px, which has fewer features to match than the
+     real thing — a probe can fail on a dataset that reconstructs fine. Rerun
+     without --probe before concluding the images are bad."
+    fi
+    die "$REG of $NIMG images registered across $NSUB model(s) — the match graph is too thin.$PROBE_NOTE
      A thin graph is a matching problem, not a mapper problem: retry with
      --matcher exhaustive (slow: ~14 min for 263 images, but it is what
      reproduces the published reconstructions), and only then --mapper global,
      which registers more images off a thin graph but constrains them badly."
+  fi
+
+  if [ "$PROBE" -eq 1 ]; then
+    cat <<EOF
+
+════ probe passed in $(( ($(date +%s) - START) / 60 )) min $(( ($(date +%s) - START) % 60 )) s
+     $REG of $NIMG images registered at 1000 px, in $NSUB model(s).
+     Full resolution has more features to work with, so the real run will do at
+     least this well. Nothing here is reused — run it for real:
+       ./pipeline.sh $IMAGES --viewer
+EOF
+    exit 0
   fi
 
   colmap image_undistorter \
