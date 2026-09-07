@@ -26,3 +26,17 @@ that the question actually has — forcing a true three-way choice into a yes/no
 hides the exact possibility that the human would have chosen. Mark at most one
 option `(recommended)`, and only if `Leaning:` agrees. Keep the label short — it is
 the click target. -->
+
+## OD-003 — How autonomous should the capture drive become?
+
+Opened: 2026-09-08
+Context: D-006 made manual control mandatory and named a driving algorithm as an optional expansion, deferring its decision until the vertical slice has run once. That slice is not done — plan-robot packages 1, 2 and 5 are open and `capture.py` has never touched hardware. The question is planned out in context/plan-driving.md but must not be decided yet; what it settles is how much of the capture motion the robot performs and therefore which packages of that plan are built.
+Options:
+- A: Semi-autonomous manoeuvres (recommended) — the human picks standpoints, the robot drives orbit, wall pass and panorama itself, later closing the loop on the wall pass with a trained regressor +best capture geometry reachable on this hardware, no training needed to start, leaves D-006 untouched, builds on `capture.py` rather than beside it / –never a claim of full autonomy; coverage and loop closure stay human
+- B: Autonomous room loop — the robot follows walls at constant distance until it returns to its start, using OpenCV floor detection or a pre-trained indoor segmentation net as the free-space source +one continuous unattended drive, strong live overlay for the presentation / –several days of perception work plus per-room tuning, fails silently on shadows and reflections, and still cannot tell when the room is covered
+- C: Trained reflex avoider on the `collision_avoidance` pattern — a ResNet-18 classifier drives forward until blocked, then rotates +the familiar JetBot path with a ready-made notebook / –learns exactly the motion 3DGS cannot use (straight approach plus spin, both parallax-degenerate), and the training data is room-specific so the presentation room needs its own
+- D: Fixed open-loop patterns only — a manoeuvre library with no perception and no human trigger, started once and left to run +smallest possible build / –drifts without bound after a few metres and will drive into furniture; only honest inside a cleared area
+- E: Nothing — manual control stays the only mode, D-006 unchanged +zero risk and zero cost, the expansion budget goes to object detection (D-012) or the Lenovo rollout instead / –the capture geometry stays as good as the human's keyboard technique, which is the quality input the whole pipeline rests on
+Trade-offs: A and B share a manoeuvre and capture layer, so choosing A does not foreclose B — B is an upgrade of A's decision layer, not a rewrite. C shares nothing with either. Every option is reversible except the time spent; C is the one whose cost recurs per room. None of them can be evaluated before the vertical slice produces frames from this camera, which is also the open risk context/measurements.md names.
+Leaning: A — it assigns the robot exactly what this hardware is good at (repeatable short moves, settle-and-shoot discipline) and the human exactly what no algorithm can supply without odometry or a map (coverage, loop closure), and the human confirmed on 2026-09-08 that manoeuvre-level autonomy is what they want.
+Needed from human: the go-ahead for A after plan-robot package 5 has produced a real reconstruction — or a different option if that run changes what looks feasible.

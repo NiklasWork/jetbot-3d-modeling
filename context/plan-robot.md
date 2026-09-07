@@ -35,6 +35,6 @@ Everything here runs on Python 3.6 (D-008). Each package can be accepted individ
 
 ## Afterwards, not now
 
-Object detection with jetson-inference (D-012) · driving algorithm instead of manual control · log detections per image.
+Object detection with jetson-inference (D-012) · the driving algorithm, planned in context/plan-driving.md and gated on OD-003 · log detections per image.
 
 Evaluated 2026-09-07 and deliberately not adopted, so it is not researched again: `jetracer` (its data-collection UI is redundant once capture.py exists) · `jupyter_clickable_image_widget` (we need no labelling UI) · `torch2trt` (a sharpness check is OpenCV, not a network) · `jetbot_ros` (the robot/Mac interface stays a folder of images, D-011) · `jdgalviss/jetbot-ros2` (only if the live-stream stretch goal returns). Looks fitting but is not: `ros2_jetbot_tools`, `jetbot_maze`, `isaac_ros_visual_slam`, `nanoowl`, `nanosam` — all require JetPack 5+ or Ubuntu 20.04/22.04.
