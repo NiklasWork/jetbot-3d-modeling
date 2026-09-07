@@ -121,7 +121,7 @@ if [ ! -d "$OUT/undistorted/sparse" ]; then
   # here: dropping images would destroy the very overlap the probe measures.
   SIFT_ARGS=()
   if [ "$PROBE" -eq 1 ]; then
-    SIFT_ARGS=(--SiftExtraction.max_image_size 1000 --SiftExtraction.max_num_features 4096)
+    SIFT_ARGS=(--FeatureExtraction.max_image_size 1000 --SiftExtraction.max_num_features 4096)
   fi
   if [ ! -f "$OUT/colmap/db.db" ]; then
     colmap feature_extractor \
