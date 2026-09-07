@@ -212,9 +212,17 @@ def _report(result, delivered, spec, frames, quality, outdir, free_before):
           "total {3:.1f} MB"
           .format(min(sizes) / 1024.0, _median(sizes) / 1024.0,
                   max(sizes) / 1024.0, _mb(total_bytes)))
-    print("  grab       median {0:.3f} s   waiting for a fresh frame; ~{1:.3f} s "
-          "if the camera really runs at {2} fps"
-          .format(_median(result["grabs"]), 1.0 / fps if fps else 0.0, fps))
+    grab_median = _median(result["grabs"])
+    expected_grab = 1.0 / fps if fps else 0.0
+    print("  grab       median {0:.3f} s   waiting for a fresh frame; expect "
+          "~{1:.3f} s at {2} fps".format(grab_median, expected_grab, fps))
+    if expected_grab and grab_median < expected_grab / 4.0:
+        print("             WARNING - far too fast to be a fresh frame. _grab()")
+        print("             counts new frames by object identity, so if jetbot's")
+        print("             Camera overwrites .value in place instead of")
+        print("             replacing it, the check passes instantly and returns")
+        print("             a stale frame. capture.py's whole settle wait (D-013)")
+        print("             then buys nothing. Verify before trusting a drive.")
     print("  resize     median {0:.3f} s   {1}"
           .format(resize_median,
                   "0 means the GPU already delivered the right size"
