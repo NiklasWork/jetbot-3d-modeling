@@ -112,7 +112,11 @@ echo "     out: $OUT"
 START=$(date +%s)
 
 # ── stage 1: structure from motion ──────────────────────────────────────────
-if [ ! -d "$OUT/undistorted/sparse" ]; then
+# The completion marker is the model file, not the directory: COLMAP creates
+# undistorted/sparse/ when it starts and writes the model into it when it
+# finishes. Testing the directory made an interrupted undistortion look like a
+# finished one, and the next run handed Brush a dataset with no poses in it.
+if [ ! -f "$OUT/undistorted/sparse/cameras.bin" ]; then
   say "sfm" "COLMAP: features → $MATCHER_CMD → $MAPPER_CMD → undistort"
   mkdir -p "$OUT/colmap"
 
@@ -182,11 +186,13 @@ EOF
     exit 0
   fi
 
+  rm -rf "$OUT/undistorted"
   colmap image_undistorter \
     --image_path "$IMAGES" --input_path "$MODEL" \
     --output_path "$OUT/undistorted" --output_type COLMAP
+  [ -f "$OUT/undistorted/sparse/cameras.bin" ] || die "image_undistorter wrote no model — see $LOG"
 else
-  echo "▸ sfm      skipped, $OUT/undistorted exists (--force to redo)"
+  echo "▸ sfm      skipped, $OUT/undistorted/sparse holds a model (--force to redo)"
 fi
 if [ "$STOP_AFTER" = sfm ]; then echo "stopped after sfm"; exit 0; fi
 
