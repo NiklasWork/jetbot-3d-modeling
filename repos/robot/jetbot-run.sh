@@ -71,13 +71,14 @@ done
 
 # What did the caller already decide for pipeline.sh? We need to know so we do
 # not add a second --camera, and so we can find model.html afterwards.
-HAVE_CAMERA=0; OUT_ARG=""; STOP_AFTER="compress"
+HAVE_CAMERA=0; OUT_ARG=""; STOP_AFTER="compress"; PROBE=0
 i=0; n=${#PASS[@]}
 while [ "$i" -lt "$n" ]; do
   case "${PASS[$i]}" in
     --camera)     HAVE_CAMERA=1;;
     --out)        OUT_ARG="${PASS[$((i+1))]:-}";;
     --stop-after) STOP_AFTER="${PASS[$((i+1))]:-compress}";;
+    --probe)      PROBE=1;;
   esac
   i=$((i+1))
 done
@@ -176,6 +177,14 @@ jetbot-run: pipeline.sh exited $rc.
      $PIPE_DIR/runs/$(basename "$DEST")/pipeline.log
 EOF
   exit "$rc"
+fi
+
+# A probe writes runs/<name>-probe and stops at the verdict by design. Looking
+# for model.html after one turns a successful probe into a reported failure.
+if [ "$PROBE" -eq 1 ]; then
+  echo; echo "jetbot-run: probe finished — verdict above, no model built."
+  echo "            run it for real:  $0 $NAME"
+  exit 0
 fi
 
 if [ "$STOP_AFTER" != compress ]; then

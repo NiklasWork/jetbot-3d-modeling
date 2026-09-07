@@ -438,9 +438,22 @@ def main(argv=None):
         print("         camera delivers {0}x{1}; stored at most {2}x{3}, JPEG q{4}"
               .format(probe.shape[1], probe.shape[0], args.width, args.height,
                       args.quality))
-        if probe.shape[1] != args.width or probe.shape[0] != args.height:
-            print("         note: not the requested size - frames get resized "
-                  "on the CPU, which costs time per shot")
+        if probe.shape[1] > args.width or probe.shape[0] > args.height:
+            print("         note: camera delivers more than requested - frames "
+                  "are resized on the CPU, which costs time per shot")
+        elif probe.shape[1] < args.width or probe.shape[0] < args.height:
+            # Nothing upscales: _downscale() passes a too-small frame straight
+            # through. Saying "gets resized" here would be a lie in the one case
+            # that ruins a whole drive - the 224x224 fallback every JetBot
+            # notebook defaults to.
+            sys.stderr.write(
+                "capture: WARNING - the camera delivers {0}x{1}, SMALLER than the "
+                "requested {2}x{3}.\n"
+                "     Nothing upscales it: every frame will be stored at {0}x{1},\n"
+                "     which is below what 3DGS can use. Stop now and fix the camera\n"
+                "     (see _open_camera) rather than driving a whole capture at this\n"
+                "     size.\n"
+                .format(probe.shape[1], probe.shape[0], args.width, args.height))
         print("         settle {0:.2f} s, step {1:.2f} s at speed {2:.2f}"
               .format(args.settle, args.drive_time, args.speed))
         print("")
