@@ -258,6 +258,45 @@ describe('SY-07 checked-off HT pile-up', () => {
   })
 })
 
+// ── TF-002: an ID borrowed from another workspace ───────────────────────────
+// Two Truss workspaces share the grammar and therefore the ID namespace. Filing
+// the report another instance produced is the channel state/truss-findings.md
+// exists for, and doing it made the receiver warn about ids it was never meant
+// to define. Inline code already reads as a quotation — the parser skips it — so
+// the way out exists; what was missing was any way to LEARN it at the moment the
+// warning fires. The remedy therefore lives in RF-02's own fix line, not only in
+// a rules file: that line is what gets read.
+describe('a quoted foreign ID has a way out, and RF-02 says it', () => {
+  // RF-02 reads links/idRefs that loadWorkspace derives, so this needs a real
+  // workspace on disk rather than a hand-built context.
+  async function rf02For(body) {
+    const root = await makeRoot('truss-foreign-id-')
+    await runInit(root, ['--name', 'Receiver', '--lang', 'English'])
+    await fs.mkdir(path.join(root, 'context'), { recursive: true })
+    await fs.writeFile(path.join(root, 'context', 'report.md'),
+      `---\nfocus: filing a foreign report\n---\n\n# Foreign report\n\n${body}\n`)
+    const found = ids(await rf.run(await loadWorkspace(root)), 'RF-02')
+    await fs.rm(root, { recursive: true, force: true })
+    return found
+  }
+
+  it('a bare foreign ID still warns — the warning itself is correct', async () => {
+    const found = await rf02For('The other instance reports D-014 as open.')
+    assert.equal(found.length, 1)
+    assert.match(found[0].message, /D-014/)
+  })
+
+  it('the same ID in inline code does not — quoting is not referencing', async () => {
+    assert.deepEqual(await rf02For('The other instance reports `D-014` as open.'), [])
+  })
+
+  it('the fix line names inline code, so the reader can act without the rules file', async () => {
+    const found = await rf02For('The other instance reports D-014 as open.')
+    assert.match(found[0].fix, /ANOTHER workspace/)
+    assert.match(found[0].fix, /inline code/)
+  })
+})
+
 // ── D-046: one checkbox syntax across modules ───────────────────────────────
 // The bug this pins down: `- [X] HT-001 — …` counted as settled for SY-07 but
 // was invisible to parseIdDefinitions, so RF-02 warned about an ID that was

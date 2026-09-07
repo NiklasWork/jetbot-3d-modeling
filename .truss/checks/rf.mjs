@@ -163,7 +163,15 @@ export async function run(ctx) {
       // and it names the layout this workspace actually uses, not the one the
       // schema prefers, so a workspace still on a single decisions.md is not
       // told to create a file in a directory it does not keep.
-      fix: `Define '${id}' in ${locationForNewEntry(ctx, cls, id)}, in the form '${cls.formText}' (docs/schema.md). If it was decided and removed, the deciding entry's 'Closes: ${id}' line is the trace — point the reference at that entry instead.`,
+      // Third way out, and the one with no other signpost: two Truss workspaces
+      // that talk to each other share the grammar and therefore the ID namespace.
+      // Filing another instance's report is the channel state/truss-findings.md
+      // exists for, and it made the receiver warn about ids that were never
+      // theirs to define (TF-002). Inline code already reads as a quotation —
+      // the parser skips it — so the fix is one backtick pair, and it belongs in
+      // this line rather than only in a rules file: this is what actually gets
+      // read when the warning fires.
+      fix: `Define '${id}' in ${locationForNewEntry(ctx, cls, id)}, in the form '${cls.formText}' (docs/schema.md). If it was decided and removed, the deciding entry's 'Closes: ${id}' line is the trace — point the reference at that entry instead. If '${id}' belongs to ANOTHER workspace (quoting a report someone else's Truss produced), wrap it in inline code — \`${id}\` — which reads it as a quotation instead of a reference.`,
     });
   }
 

@@ -203,9 +203,11 @@ export function parseHeadings(lines) {
  */
 export function parseAllLinks(lines) {
   const results = [];
-  for (let i = 0; i < lines.length; i++) {
-    for (const link of parseLinks(lines[i])) {
-      results.push({ ...link, line: i + 1 });
+  // Same scanner as parseIdReferences: a link shown inside a fence or inline
+  // code is an example, not a reference (TF-001).
+  for (const { text, line } of proseLines(lines)) {
+    for (const link of parseLinks(text)) {
+      results.push({ ...link, line });
     }
   }
   return results;
@@ -277,6 +279,60 @@ export function parseIdDefinitions(lines, classes) {
 }
 
 /**
+ * Walk `lines` and yield the part of each line a reader sees as prose: fenced
+ * code blocks are dropped entirely, HTML comments (single- and multi-line) and
+ * inline code spans are stripped out of what remains.
+ *
+ * ONE scanner, because two of them drift and did. `parseIdReferences` skipped
+ * all of this; `parseAllLinks` skipped none of it. The same documented example —
+ * a fenced block showing a file format with relative links — was therefore legal
+ * as an ID reference and a hard RF-01 **error** as a link, so there was no
+ * permitted way to document a format at all (TF-001). The asymmetry was silent:
+ * seeing IDs ignored inside a fence implies links are too.
+ *
+ * `indented` reports a 4-space/tab line WITHOUT acting on it, because the two
+ * callers must not treat it alike. `parseIdReferences` skips those lines; link
+ * checking deliberately does not. A 4-space line is only a Markdown code block
+ * outside a list, and our own HT entries indent step continuations by five —
+ * skipping them for links would stop RF-01 from ever seeing a broken link in a
+ * numbered step, which is a loosening nobody asked for.
+ *
+ * Yields { text, line, indented } with `line` 1-based.
+ */
+export function* proseLines(lines) {
+  let inFencedBlock = false;
+  let inHtmlComment = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (!inHtmlComment && (line.startsWith('```') || line.startsWith('~~~'))) {
+      inFencedBlock = !inFencedBlock;
+      continue;
+    }
+    if (inFencedBlock) continue;
+
+    let working = line;
+    if (inHtmlComment) {
+      const endIdx = working.indexOf('-->');
+      if (endIdx === -1) continue;            // whole line is inside the comment
+      inHtmlComment = false;
+      working = working.slice(endIdx + 3);
+    }
+
+    working = working.replace(/<!--.*?-->/g, '');
+    if (working.includes('<!--')) {
+      working = working.slice(0, working.indexOf('<!--'));
+      inHtmlComment = true;
+    }
+
+    working = working.replace(/`[^`]+`/g, '');
+
+    yield { text: working, line: i + 1, indented: line.startsWith('    ') || line.startsWith('\t') };
+  }
+}
+
+/**
  * Find all structured IDs referenced (used but not necessarily defined) in a file.
  * Skips fenced code blocks, inline code, HTML comments (single- and multi-line),
  * and indented code blocks.
@@ -284,48 +340,17 @@ export function parseIdDefinitions(lines, classes) {
  */
 export function parseIdReferences(lines, classes) {
   const refs = [];
-  let inFencedBlock = false;
-  let inHtmlComment = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  for (const { text, line, indented } of proseLines(lines)) {
+    // Indented code block (4 spaces or tab) — see proseLines' note on why this
+    // stays here instead of moving into the shared scanner.
+    if (indented) continue;
 
     // A resolving decision keeps `Closes: OD-NNN` after the OD definition is
     // removed, so this durable trace is intentionally not a live reference.
-    if (/^Closes:\s+OD-\d{3}\s*$/.test(line.trim())) continue;
+    if (/^Closes:\s+OD-\d{3}\s*$/.test(lines[line - 1].trim())) continue;
 
-    // Toggle fenced code block
-    if (!inHtmlComment && (line.startsWith('```') || line.startsWith('~~~'))) {
-      inFencedBlock = !inFencedBlock;
-      continue;
-    }
-    if (inFencedBlock) continue;
-
-    // Indented code block (4 spaces or tab)
-    if (line.startsWith('    ') || line.startsWith('\t')) continue;
-
-    // Handle multi-line HTML comments
-    let working = line;
-    if (inHtmlComment) {
-      const endIdx = working.indexOf('-->');
-      if (endIdx === -1) continue; // whole line is inside comment
-      inHtmlComment = false;
-      working = working.slice(endIdx + 3);
-    }
-
-    // Strip single-line HTML comments <!-- ... --> and detect unclosed ones
-    working = working.replace(/<!--.*?-->/g, '');
-    if (working.includes('<!--')) {
-      working = working.slice(0, working.indexOf('<!--'));
-      inHtmlComment = true;
-    }
-
-    // Strip inline code `...` (single backticks)
-    working = working.replace(/`[^`]+`/g, '');
-
-    const ids = findIds(working, classes);
-    for (const id of ids) {
-      refs.push({ id, line: i + 1 });
+    for (const id of findIds(text, classes)) {
+      refs.push({ id, line });
     }
   }
   return refs;
