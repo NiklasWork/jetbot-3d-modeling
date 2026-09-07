@@ -24,10 +24,40 @@ Generates the image folder that `pipeline-3d` processes further — and works wi
    log detections per image. The mapping to 3D coordinates happens
    **not here**, but on the Mac from the COLMAP poses.
 
-## The two scripts
+## The scripts
 
-> **Neither has ever run.** They were written against the jetbot 0.4.3 sources
-> while the robot was still offline. See *First run on the device* below.
+> **None of them has ever run.** They were written against the jetbot 0.4.3
+> sources while the robot was still offline. See *First run on the device*
+> below — start with `checkup.py`, it exists to be the first thing executed.
+
+### `checkup.py` — on the robot, before anything else
+
+```bash
+python3 checkup.py                     # target resolution, 20 frames
+python3 checkup.py --all-modes --keep  # every candidate, keep the frames
+```
+
+Drives nothing and writes into `~/checkup`, not into a capture folder. It
+answers the two questions that block `capture.py` and cannot be answered from
+the Mac:
+
+1. **Does the camera deliver ≥1280×960?** It walks a list of candidate
+   resolutions and prints what each one actually returns. A configuration that
+   starts but hands back 224×224 counts as failed, and the walk continues —
+   otherwise the check would report success for exactly the trap it exists to
+   find.
+2. **Does the SD card keep up?** It writes N JPEGs back to back — harsher than
+   the real drive, which has ~1 s between shots — and calls `os.sync()` before
+   reporting throughput. Without that flush the numbers are page cache, not
+   card: 20 frames are ~6 MB against 4 GB of RAM.
+
+It also prints the Laplacian sharpness of every frame and suggests a
+`--min-sharpness` for `capture.py`, but only if the resolution check passed —
+the score scales with resolution, so a threshold read off a 224×224 frame would
+be wrong for the drive.
+
+`--probe-only` asks the camera and writes nothing. `--keep` leaves the frames
+so you can look at them; without it they are removed.
 
 ### `capture.py` — on the robot
 
@@ -53,7 +83,7 @@ The parameters you actually turn:
 | `--settle 0.7` | seconds between stopping and the shot. **The one to tune.** Too short and the frame is sheared by the still-rocking mount; too long and a 200-frame drive crawls. Raise it until spot-checked frames are sharp. |
 | `--speed 0.30` `--drive-time 0.30` `--turn-time 0.25` | how far one step goes. Shorter steps mean more overlap — the pipeline wants 70–80 % between neighbours. |
 | `--turn-inner 0.2` | inner wheel on `a`/`d` as a fraction of the outer. `-1.0` turns them into spins. |
-| `--min-sharpness 0` | Laplacian variance below which a frame is re-shot instead of stored. Off by default because the scale depends on the scene — the value is printed for every frame, so drive once, look, then set it to about half the typical number. |
+| `--min-sharpness 0` | Laplacian variance below which a frame is re-shot instead of stored. Off by default because the scale depends on the scene **and on the resolution** — the value is printed for every frame, so run `checkup.py` or drive once, look, then set it to about half the typical number. Changing `--width/--height` later invalidates the threshold. |
 | `--min-change 1.0` | mean pixel difference to the previous frame below which the shot is skipped. Catches a stalled robot filling the folder with one view. |
 | `--width 1280 --height 960` `--capture-width 1640 --capture-height 1232` | resolution. The defaults are deliberate: jetbot's camera class hard-codes `sensor-mode=3`, which on the IMX219 is natively 1640×1232, and 1280×960 is the largest size worth keeping (D-013). |
 
@@ -83,28 +113,43 @@ entry so no IP is pinned here), `JETBOT_CAPTURES` (default `<repo>/captures`),
 
 ## First run on the device
 
-Nothing below could be tested from the Mac. Check it in this order:
+Nothing below could be tested from the Mac. Check it in this order — the first
+step is a script, the rest is judgement.
 
-1. **Camera resolution.** Start `capture.py` and read the line it prints: it
-   reports what the camera actually delivered. If it is 224×224, the traitlets
-   kwargs did not reach the GStreamer pipeline; if `nvarguscamerasrc` complains
-   about the sensor mode, lower `--capture-width/--capture-height` or switch to
-   `jetcam`'s `CSICamera` — see the comment in `_open_camera()`.
-2. **Sharpness.** Spot-check frames, then tune `--settle`. Note the printed
-   sharpness numbers and set `--min-sharpness` for the next drive.
-3. **Frame rate to SD card.** One shot writes ~300 kB. If storing lags behind
-   the driving, lower `--quality`.
-4. **Motor deadband and step length.** `--speed 0.30` is a guess; if the robot
-   does not move, raise it. Then check the overlap between two frames.
-5. **Stop on crash.** Ctrl-C mid-drive, and kill the process from a second
+1. **Camera and card.** Close the Jupyter notebooks first: they hold the camera,
+   and a second opener gets nothing. Then
+
+   ```bash
+   python3 checkup.py --keep
+   ```
+
+   Read its three verdict lines, then look at a few of the kept frames.
+   - Resolution FAILED at 224×224 → the traitlets kwargs never reached the
+     GStreamer pipeline. Try `--all-modes`; if nothing reaches 1280×960,
+     switch to `jetcam`'s `CSICamera` — see `open_camera()` in `capture.py`.
+   - Nothing starts at all → `sudo systemctl restart nvargus-daemon`, then
+     check `ls /dev/video0` and the ribbon cable.
+   - Card TOO SLOW → lower `capture.py`'s `--quality`, or raise `--settle` so
+     the wait absorbs the write.
+   - Note the suggested `--min-sharpness`; it is measured standing still, so
+     treat it as the optimistic end.
+2. **Sharpness under motion.** Drive with `capture.py`, spot-check frames, and
+   raise `--settle` until they are sharp. Only now is `--min-sharpness` worth
+   switching on — `checkup.py` never moved the robot, so it cannot tell you
+   what the mount does after a step.
+3. **Motor deadband and step length.** `--speed 0.30` is a guess; if the robot
+   does not move, raise it. Then check the overlap between two frames — the
+   pipeline wants 70–80 %.
+4. **Stop on crash.** Ctrl-C mid-drive, and kill the process from a second
    shell — the wheels must stop both times.
-6. **rsync.** macOS ships `openrsync`, which does not always speak to the GNU
+5. **rsync.** macOS ships `openrsync`, which does not always speak to the GNU
    `rsync` on the robot. If the transfer fails, `RSYNC=/opt/homebrew/bin/rsync`.
 
 ## Status
 
-Robot is built and flashed; `capture.py` and `jetbot-run.sh` are written but
-unrun. Next step: boot, connect to WiFi, open `teleoperation` notebook.
+Robot is built and flashed; `checkup.py`, `capture.py` and `jetbot-run.sh` are
+written but unrun. Next step: boot, connect to WiFi, open the `teleoperation`
+notebook, then `checkup.py`.
 
 ## Limitations
 
