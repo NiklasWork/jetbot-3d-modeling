@@ -8,4 +8,4 @@ focus: pipeline-3d done through package 5; robot capture and transfer written bu
 
 branch: main
 
-blockers: robot not on the network — first boot, WiFi and SSH are physical acts. HT-001 under review: the delivery image `jetbot-043_nano-4gb-jp45.zip` is still on the Mac, which voids the reason the entry gives for itself
+blockers: robot not on the network — first boot, WiFi and SSH are physical acts
