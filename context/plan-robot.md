@@ -1,7 +1,7 @@
 ---
 focus: The robot drives controlled and stores sharp, properly sized images in a folder
 next:
-  - Package 1 — Boot robot, connect to WiFi, decide HT-001 (the delivery zip is still on disk)
+  - Package 1 — Boot robot, connect to WiFi, reach Jupyter in the browser
   - Package 2 — Control and live image from the included notebooks
   - Package 3 — `checkup.py` first on the device: it decides whether the camera reaches 1280×960 and whether the card keeps up
   - Packages 3 and 4 — never executed; accept on the device per repos/robot/README.md § First run
@@ -16,7 +16,7 @@ blockers: none
 
 Everything here runs on Python 3.6 (D-008). Each package can be accepted individually.
 
-1. **Robot on network.** Boot, setup WiFi, reach Jupyter in the browser. Before that, backup the SD card — see HT-001, afterwards changes will be made.
+1. **Robot on network.** Boot, setup WiFi, reach Jupyter in the browser. No SD-card backup is taken — HT-001 settled that recovery is a re-download of the delivery image.
    *Done when:* `basic_motion` moves the wheels from the browser.
 
 2. **Control and image.** Put the included `teleoperation` notebook into operation. Mount camera as high as the chassis allows, tilted slightly upwards.
