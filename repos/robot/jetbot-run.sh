@@ -16,7 +16,8 @@ set -euo pipefail
 # ── defaults, all overridable from the environment ──────────────────────────
 JETBOT_HOST="${JETBOT_HOST:-jetbot}"          # a ~/.ssh/config entry, not an IP
 JETBOT_REMOTE_DIR="${JETBOT_REMOTE_DIR:-captures}"   # relative to the robot's home
-JETBOT_CAPTURES="${JETBOT_CAPTURES:-$HOME/captures}" # where they land locally
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+JETBOT_CAPTURES="${JETBOT_CAPTURES:-$REPO_ROOT/captures}"  # in the repo, git-ignored
 JETBOT_CAMERA="${JETBOT_CAMERA:-OPENCV_FISHEYE}"     # D-010
 RSYNC="${RSYNC:-rsync}"
 SSH_OPTS="${SSH_OPTS:--o BatchMode=yes -o ConnectTimeout=8}"
@@ -41,7 +42,7 @@ overrides the OPENCV_FISHEYE default.
 Environment
   JETBOT_HOST         ssh target             (default: jetbot)
   JETBOT_PIPELINE     path to pipeline.sh    (default: pipeline.sh on $PATH)
-  JETBOT_CAPTURES     local capture root     (default: $HOME/captures)
+  JETBOT_CAPTURES     local capture root     (default: <repo>/captures)
   JETBOT_CAMERA       COLMAP camera model    (default: OPENCV_FISHEYE)
   JETBOT_REMOTE_DIR   capture dir on the robot, relative to its home
   RSYNC               rsync binary to use    (default: rsync)

@@ -78,7 +78,7 @@ export JETBOT_PIPELINE="$HOME/…/repos/pipeline-3d/pipeline.sh"
 ```
 
 Also settable: `JETBOT_HOST` (default `jetbot`, meant to be a `~/.ssh/config`
-entry so no IP is pinned here), `JETBOT_CAPTURES` (default `~/captures`),
+entry so no IP is pinned here), `JETBOT_CAPTURES` (default `<repo>/captures`),
 `JETBOT_CAMERA`, `JETBOT_REMOTE_DIR`, `RSYNC`.
 
 ## First run on the device

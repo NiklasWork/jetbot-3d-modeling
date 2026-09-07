@@ -41,3 +41,8 @@
 # The code lives in two independent projects. Map and doctor check the
 # workspace, not the product.
 repos/
+
+# ── Capture data ────────────────────────────────────────────────────────────
+# Image folders from the robot and from phone test runs. Bulk data, kept in
+# the repo for convenience, git-ignored, and no business in map or doctor.
+captures/

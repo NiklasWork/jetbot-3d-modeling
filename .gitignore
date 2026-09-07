@@ -20,3 +20,7 @@ desktop.ini
 .env
 .env.*
 !.env.example
+# Capture drives and phone test sets. The images stay inside the repo so the
+# project is one directory, but they never enter the history — a single drive
+# is hundreds of megabytes.
+captures/

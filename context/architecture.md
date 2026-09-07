@@ -39,4 +39,4 @@ Separate repos, separate runtime, separately demonstrable (D-011). They meet at 
 | Delivers | the 3D model and the viewer | images, control, object detections |
 | Demonstrable as | growing model in the live viewer | driving robot with live detection |
 
-The interface is deliberately dumb: a folder with images plus one file with detections per image. No protocol, no network API, no shared library — this ensures each side remains executable and individually repairable without the other.
+The interface is deliberately dumb: a folder with images plus one file with detections per image. That folder lives at `captures/<name>/` in the repo root — inside the project so everything is one directory, git-ignored because a single drive is hundreds of megabytes. No protocol, no network API, no shared library — this ensures each side remains executable and individually repairable without the other.
