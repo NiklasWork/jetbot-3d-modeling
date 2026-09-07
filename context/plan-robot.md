@@ -23,6 +23,8 @@ Everything here runs on Python 3.6 (D-008). Each package can be accepted individ
 
 3. **Capture script.** The stop-and-go loop from D-013: drive a bit → stop → wait for oscillation to settle → shot → repeat, while the human dictates the direction. Scale down images to at most 1280×960, in color, filename with timestamp.
    *Done when:* a drive generates a folder in which randomly checked images are sharp.
+   *Start from:* `road_following/data_collection_gamepad.ipynb` on the image — it already drives by gamepad and writes one frame per button press; strip the label logic, raise the resolution, number the files sequentially. Searched 2026-09-07: no public JetBot + 3DGS project exists, so this notebook is the only template there is.
+   *Trap:* every JetBot notebook instantiates the camera at 224×224, ResNet training resolution. 3DGS needs ≥1280×960, so the `Camera` class must be reconfigured and the SD card write rate becomes a factor. `NVIDIA-AI-IOT/jetcam` is the fallback if the JetBot class fights it.
 
 4. **Transfer.** A command from the Mac fetches the folder.
    *Done when:* the folder resides completely on the Mac.
