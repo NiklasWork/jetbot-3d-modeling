@@ -25,6 +25,7 @@ Everything here runs on Python 3.6 (D-008). Each package can be accepted individ
    *Done when:* a drive generates a folder in which randomly checked images are sharp.
    *Start from:* `road_following/data_collection_gamepad.ipynb` on the image — it already drives by gamepad and writes one frame per button press; strip the label logic, raise the resolution, number the files sequentially. Searched 2026-09-07: no public JetBot + 3DGS project exists, so this notebook is the only template there is.
    *Trap:* every JetBot notebook instantiates the camera at 224×224, ResNet training resolution. 3DGS needs ≥1280×960, so the `Camera` class must be reconfigured and the SD card write rate becomes a factor. `NVIDIA-AI-IOT/jetcam` is the fallback if the JetBot class fights it.
+   *Borrow from `javieryu/nerf_bridge`:* it rejects blurry frames and frames too close to the previous pose. Both belong in the capture loop — a Laplacian-variance check to drop a soft frame on the spot, and a minimum movement between shots so a stalled robot cannot fill the folder with duplicates. A few lines of OpenCV, no dependency.
 
 4. **Transfer.** A command from the Mac fetches the folder.
    *Done when:* the folder resides completely on the Mac.
@@ -35,3 +36,5 @@ Everything here runs on Python 3.6 (D-008). Each package can be accepted individ
 ## Afterwards, not now
 
 Object detection with jetson-inference (D-012) · driving algorithm instead of manual control · log detections per image.
+
+Evaluated 2026-09-07 and deliberately not adopted, so it is not researched again: `jetracer` (its data-collection UI is redundant once capture.py exists) · `jupyter_clickable_image_widget` (we need no labelling UI) · `torch2trt` (a sharpness check is OpenCV, not a network) · `jetbot_ros` (the robot/Mac interface stays a folder of images, D-011) · `jdgalviss/jetbot-ros2` (only if the live-stream stretch goal returns). Looks fitting but is not: `ros2_jetbot_tools`, `jetbot_maze`, `isaac_ros_visual_slam`, `nanoowl`, `nanosam` — all require JetPack 5+ or Ubuntu 20.04/22.04.
