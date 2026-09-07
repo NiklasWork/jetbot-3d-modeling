@@ -107,7 +107,7 @@ def die(msg):
 
 # --- camera ---------------------------------------------------------------
 
-def _open_camera(args):
+def open_camera(width, height, capture_width, capture_height, fps):
     """Build a jetbot Camera at a resolution 3DGS can use.
 
     The trap: jetbot 0.4.3's OpenCvGstCamera defaults to 224x224 output from
@@ -133,18 +133,25 @@ def _open_camera(args):
     'sensor-id' instead of 'sensor-mode', which lets Argus pick whichever mode
     fits the requested caps. Deliberately not wired in here - swapping it in is
     a two-line change once we know it is needed.
+
+    Raises instead of exiting, so checkup.py can walk a list of candidate
+    resolutions; _open_camera() below is the variant that gives up with advice.
     """
+    from jetbot import Camera
+    return Camera(width=width, height=height,
+                  capture_width=capture_width,
+                  capture_height=capture_height,
+                  fps=fps)
+
+
+def _open_camera(args):
+    """open_camera() for the capture drive: one resolution, or a hard stop."""
     try:
-        from jetbot import Camera
+        return open_camera(args.width, args.height, args.capture_width,
+                           args.capture_height, args.fps)
     except ImportError as exc:
         die("cannot import jetbot ({0}). This script runs on the robot, "
             "not on the Mac.".format(exc))
-
-    try:
-        return Camera(width=args.width, height=args.height,
-                      capture_width=args.capture_width,
-                      capture_height=args.capture_height,
-                      fps=args.fps)
     except Exception as exc:
         die("camera would not start at {0}x{1} (capture {2}x{3}, {4} fps): {5}\n"
             "     Common causes: something else holds the camera - close the\n"
@@ -349,6 +356,9 @@ def _parse_args(argv):
         die("--drive-time and --turn-time must be > 0")
     if not 0.0 < args.speed <= 1.0:
         die("--speed must be in (0, 1]")
+    if not -1.0 <= args.turn_inner <= 1.0:
+        die("--turn-inner must be in [-1.0, 1.0] - it is a fraction of --speed, "
+            "and anything past 1.0 drives the inner wheel harder than the outer")
     if not 1 <= args.quality <= 100:
         die("--quality must be in 1..100")
     if args.width < 1 or args.height < 1:
