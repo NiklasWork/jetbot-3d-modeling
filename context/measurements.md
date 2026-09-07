@@ -150,6 +150,54 @@ Deep Blending's two indoor scenes, run through `pipeline.sh` as a user would.
 
 **Six and a half minutes from a folder of photos to a model that orbits in a browser.** Adding real SfM to the `fast` preset costs 99 s, a third of the training time — the block that was assumed to dominate is the smaller one. The `.html` output is the PlayCanvas SuperSplat viewer with the model inlined, so the demonstration needs no server at all; conversion to `.sog` is 27 s here against 59–67 s for the baseline's 288 MiB `.ply`, tracking file size.
 
+### Phone stills, and what the `--probe` mode is really worth — 2026-09-08
+
+The first dataset from our own capture rather than a public one: 372 iPhone stills of a
+room, **4032×3024**, one continuous walk, one lens, nothing deleted. Every number above
+comes from images of 979×546 or smaller, so this is the first look at what full-resolution
+input costs. Same machine, `fast` preset, sequential + incremental.
+
+| Stage | Full res, 4032 px | `--probe`, capped at 1000 px |
+|---|---:|---:|
+| Feature extraction | 5.12 min | 4.28 min |
+| Matching | 5.24 min | **0.58 min** |
+| Mapper | 7.00 min | 4.10 min |
+| Undistortion | 3.58 min | skipped by design |
+| **SfM total** | **~21 min** | **9.0 min** |
+| Registered | 330 of 372 (88 %), 1 model | 296 of 372 (79 %), 2 models |
+
+**Full-resolution stills are decode-bound, not compute-bound.** Capping the extractor at
+1000 px is a 16× cut in pixels processed and buys 16 % — because COLMAP still reads and
+JPEG-decodes 372 twelve-megapixel files either way. That floor is what the probe cannot
+get under, and it is why the probe saves 12 minutes of 21 rather than the bulk of it.
+`--FeatureExtraction.max_image_size` defaults to **-1** in COLMAP 4.1.1, no limit — an
+earlier assumption that COLMAP downsamples to 3200 px on its own is wrong for this version.
+
+**The one place the resolution lever works is matching: −89 %.** Fewer features per image
+means quadratically fewer descriptor comparisons per pair.
+
+**The probe's verdict is conservative, which is the right direction.** 79 % across two
+models against the full run's 88 % across one: it passes its own gate, and it under-reports
+rather than over-reports. A probe that flatters a dataset would be worse than none.
+
+**Consequence for capture, and it outranks the probe:** downscale the source images once
+before any of this. The JetBot delivers 1280×960, so this is a phone-only tax — but for a
+phone test set, `sips -Z 1600` up front removes the decode floor from every stage at once
+and leaves reusable output, which the probe never does.
+
+**Unexplained, and now the dominant cost:** `splat-transform`'s `.sog` → `.html` step took
+**15 min 21 s** here, against 27 s for both conversions together on `truck`. Same version,
+same 400 k splats, and the `.ply` → `.sog` step was normal at 25 s. Total run 42 min, of
+which Brush's own timer claims only 258 s. Not reproduced yet — one repeat of the compress
+stage alone would settle whether this is data-dependent k-means convergence on a hazy
+indoor scene or an artefact of that particular run.
+
+**One bug found and fixed by this run.** `pipeline.sh` treated the existence of
+`undistorted/sparse/` as proof that undistortion had finished, but COLMAP creates that
+directory when it starts and writes the model into it at the end. An undistortion that was
+still running looked finished to the next invocation, which then skipped SfM and handed
+Brush a dataset with no poses — `Format not recognized`. The check is now the model file.
+
 ## Measurement protocol
 
 Three false conclusions came out of this project's measurements before this protocol existed: background load with a cold cache, then a laptop that spent part of a series inside a cotton bag, then a cold cache inside a timed run. Future measurements follow this.
