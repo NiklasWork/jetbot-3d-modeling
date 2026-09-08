@@ -28,6 +28,28 @@ images/  →  COLMAP  →  Brush  →  splat-transform  →  model.html
 Each stage skips itself if its output already exists, so a re-run continues where it
 stopped. `--force` recomputes.
 
+## While it runs
+
+One line, overwriting itself: how far the current step has got, and how much longer it
+needs at the rate it is going.
+
+```
+  [1/3] mapper    ██████████░░░░░░░░  60%  36/60  0m27s  ~0m18s
+  [2/3] train     █████░░░░░░░░░░░░░  29%  1400/4800  1m52s  ~4m34s  · model ~5m34s
+```
+
+Every count is read from what the tool itself prints, and the time left is measured
+inside this run — nothing is looked up from a table, so it is right whether the images
+are 4032 px phone stills or 1280×960 frames off the robot.
+
+A figure for the **whole** run appears from the training stage onward and not before.
+Earlier it would be invented: measured runs put SfM at 26 % of one and 50 % of another,
+and the compress stage has taken 27 s once and 15 min 21 s another time. So the compress
+stage shows its elapsed time and makes no promise.
+
+`pipeline.log` keeps every line the tools printed either way. `--verbose` puts them back
+on the terminal, and so does any run whose output is not a terminal — a pipe, `nohup`, CI.
+
 ## Install
 
 ```bash
@@ -50,6 +72,7 @@ pinned version through `npx`.
 | `--viewer` | Brush's live training viewer — the model assembling itself, which is the point of the presentation. |
 | `--probe` | Verdict only, into `runs/<name>-probe`: the same images at 1000 px, poses only, no undistortion, no training. Answers *will this reconstruct?* for a fraction of the cost. Resolution is the lever, never image count — dropping images would destroy the overlap the probe exists to measure. A probe that passes means the real run passes; a probe that fails means look closer, not start over. Nothing it computes is reused, so on a capture method that already works it is pure overhead. |
 | `--stop-after sfm\|train\|compress` | |
+| `--verbose` | Every tool line on the terminal instead of one progress line. The log holds them regardless. |
 | `--out DIR` | Default `runs/<folder name>`. |
 
 ## When it fails
