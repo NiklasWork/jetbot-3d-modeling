@@ -16,6 +16,7 @@ Only proven projects: many stars or an official development team. Prefer a few g
 - jetson-inference (dusty-nv/jetson-inference) — object detection on the JetBot, 9.0k ★, MIT
 - JetBot (NVIDIA-AI-IOT/jetbot) — robot control, 3.3k ★, MIT — resides as 0.4.3 on the image
 - ffmpeg — only fallback and screen captures now (stop-and-go instead of video, D-013)
+- rsync 3.5.0 (GNU, Homebrew) — installed 2026-09-08 and ahead of /usr/bin/rsync on PATH, so `jetbot-run.sh` gets `--info=progress2` and needs no `RSYNC=` override; macOS' own openrsync has neither the option nor reliable protocol compatibility with the robot
 - Coolify — deployment on the Lenovo, postponed
 
 ## Style & moral
