@@ -135,10 +135,11 @@ NREMOTE="$(printf '%s' "$NREMOTE" | tr -cd '0-9')"
 DEST="${DEST:-$JETBOT_CAPTURES/$NAME}"
 mkdir -p "$DEST"; DEST="$(cd "$DEST" && pwd)"
 say "fetch" "$NREMOTE image(s)  →  $DEST"
-# --info=progress2 is one line for the whole transfer — percentage, rate and
-# time left — instead of a bar per file, which over WiFi is the difference
-# between "something is happening" and "four more minutes". macOS ships
-# openrsync, which does not know the option; ask before using it.
+# --info=progress2 is one line for the whole transfer instead of a bar per
+# file: bytes, percent of the whole fetch, rate, and files still to check.
+# Measured against a throttled copy of 40 frames — the time column is elapsed,
+# not remaining, so the percentage and the rate are what tell you how long is
+# left. macOS ships openrsync, which does not know the option; ask before use.
 PROGRESS_OPT=(--progress)
 if "$RSYNC" --info=progress2 --version >/dev/null 2>&1; then
   PROGRESS_OPT=(--info=progress2)
