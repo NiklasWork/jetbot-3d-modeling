@@ -91,6 +91,20 @@ FRAME_RE = re.compile(r"^frame_(\d+)\.jpg$")
 FRAME_FMT = "frame_%04d.jpg"
 MAX_INDEX = 9999          # beyond this %04d stops sorting correctly
 
+# Coverage, not progress. Nobody knows how long a hand-steered drive is, so
+# there is no percentage to show and none is faked. What can be shown is how
+# far the folder is from the two counts that mean something: pipeline-3d
+# refuses to reconstruct below MIN_IMAGES, and every dataset measured in
+# context/measurements.md sat in the MEASURED range. Each is announced once,
+# when it is crossed.
+MIN_IMAGES = 20
+MEASURED_LOW = 225
+
+
+def _elapsed(seconds):
+    seconds = int(seconds)
+    return "{0}m{1:02d}s".format(seconds // 60, seconds % 60)
+
 KEY_HELP = """  w / s      step forward / backward, then shoot
   a / d      arc left / right, then shoot
   A / D      spin left / right in place, then shoot
@@ -459,6 +473,7 @@ def main(argv=None):
         print("")
         print(KEY_HELP)
 
+        run_start = time.time()
         with Keyboard() as keys:
             while True:
                 key = keys.read(0.2)
@@ -508,10 +523,20 @@ def main(argv=None):
                 prev_gray = gray
                 written += 1
                 index += 1
-                print("  {0:<8} {1:<10} sharpness {2:>7.0f}{3}   ({4} this run)"
+                total = index - 1
+                print("  {0:<8} {1:<10} sharpness {2:>7.0f}{3}   {4} frames, {5}"
                       .format(os.path.basename(path), label, score,
                               "" if change is None else "  change {0:.2f}".format(change),
-                              written))
+                              total, _elapsed(time.time() - run_start)))
+                # The folder count is what the two thresholds are about, so a
+                # resumed capture crosses them at the right moment, not at the
+                # right moment of this run.
+                if total == MIN_IMAGES:
+                    print("           {0} frames - past the minimum pipeline-3d "
+                          "will reconstruct".format(MIN_IMAGES))
+                elif total == MEASURED_LOW:
+                    print("           {0} frames - as many as the datasets whose "
+                          "runtimes are measured".format(MEASURED_LOW))
 
     except KeyboardInterrupt:
         print("\ncapture: interrupted")

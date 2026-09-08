@@ -76,6 +76,12 @@ Files are numbered, not timestamped, and the numbering is the interface:
 `pipeline.sh` matches neighbouring filenames as neighbouring viewpoints. Re-running
 with the same name continues the count instead of overwriting.
 
+Each shot prints its sharpness, how many frames the folder now holds and how long
+the drive has been going. No percentage: nobody knows in advance how long a
+hand-steered drive is, so none is invented. The two counts that do mean something
+are announced as they are crossed — 20 frames, below which `pipeline.sh` refuses
+to reconstruct at all, and 225, the smallest dataset whose runtimes are measured.
+
 The parameters you actually turn:
 
 | | |

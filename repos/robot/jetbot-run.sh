@@ -135,7 +135,15 @@ NREMOTE="$(printf '%s' "$NREMOTE" | tr -cd '0-9')"
 DEST="${DEST:-$JETBOT_CAPTURES/$NAME}"
 mkdir -p "$DEST"; DEST="$(cd "$DEST" && pwd)"
 say "fetch" "$NREMOTE image(s)  →  $DEST"
-"$RSYNC" -a --partial --progress \
+# --info=progress2 is one line for the whole transfer — percentage, rate and
+# time left — instead of a bar per file, which over WiFi is the difference
+# between "something is happening" and "four more minutes". macOS ships
+# openrsync, which does not know the option; ask before using it.
+PROGRESS_OPT=(--progress)
+if "$RSYNC" --info=progress2 --version >/dev/null 2>&1; then
+  PROGRESS_OPT=(--info=progress2)
+fi
+"$RSYNC" -a --partial "${PROGRESS_OPT[@]}" \
     "$JETBOT_HOST:$JETBOT_REMOTE_DIR/$NAME/" "$DEST/" \
   || die "rsync failed.
      macOS ships openrsync, which does not always talk to the GNU rsync on the

@@ -94,15 +94,20 @@ def _free_bytes(path):
     return stat.f_bavail * stat.f_frsize
 
 
-def _try_camera(spec, settle):
+def _try_camera(spec, settle, pos=""):
     """Open one candidate, report what came out, close it again.
 
     Returns (delivered_w, delivered_h) or None. Never raises: a candidate that
     cannot start is a result, not an error.
+
+    `pos` is the "[2/5] " counter. Starting a candidate costs the settle wait
+    plus however long nvargus-daemon takes, and a build that fights the caps
+    can sit there for seconds - without the counter there is no way to tell a
+    slow candidate from a hung one.
     """
     out_w, out_h, cap_w, cap_h, fps, why = spec
-    print("  {0}x{1} from {2}x{3} @{4}  - {5}"
-          .format(out_w, out_h, cap_w, cap_h, fps, why))
+    print("  {0}{1}x{2} from {3}x{4} @{5}  - {6}"
+          .format(pos, out_w, out_h, cap_w, cap_h, fps, why))
     camera = None
     try:
         camera = capture.open_camera(out_w, out_h, cap_w, cap_h, fps)
@@ -376,8 +381,10 @@ def main(argv=None):
     # one that merely started: a camera that answers a 1280x960 request with
     # 224x224 has started fine and still failed the check.
     working = None
-    for spec in _candidates(args):
-        delivered = _try_camera(spec, args.settle)
+    candidates = _candidates(args)
+    for number, spec in enumerate(candidates, 1):
+        delivered = _try_camera(spec, args.settle,
+                                "[{0}/{1}] ".format(number, len(candidates)))
         if not delivered:
             continue
         if working is None or _pixels(delivered) > _pixels(working[1]):
