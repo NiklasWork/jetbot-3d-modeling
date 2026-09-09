@@ -3,7 +3,7 @@ focus: Built and published — https://claude.ai/code/artifact/310cd4ee-8355-4ff
 next:
   - Human review of the published deck
   - Swap the embedded model for a JetBot capture once the robot has produced one (§ Assets)
-  - Rebuild the embedded viewer through the aligned pipeline — the Dr Johnson model in it hangs 14.3° off level, measured from its poses; republishing the artifact is a human call
+  - Republish the artifact — `deck.html` on disk carries the levelled viewer (rebuilt 2026-09-09), but was not published because another session had the deck's sources open at the time
 blockers: none
 ---
 
@@ -65,9 +65,12 @@ Anything beyond this is decoration a projector cannot use.
 **The room model, measured 2026-09-09.** A pipeline `model.html` is ~12 MB — three quarters of the budget. Recipe that fits, run against the source `.sog`:
 
 ```
-splat-transform <run>/filtered.sog -H 0 -F -d 40% x.ply   # ~10 s
+splat-transform <run>/filtered.sog -r $(node repos/pipeline-3d/gravity.mjs <run>/undistorted/sparse/images.bin) \
+                -H 0 -F -d 40% x.ply                      # ~10 s
 splat-transform x.ply presentation/assets/room.html       # 159 k splats, 5.5 MB
 ```
+
+**The `-r` is not optional.** `room.html` and `deck.html` are gitignored build outputs, so the only place the alignment survives is this recipe: drop the rotation and the next rebuild silently puts the room back on its 14.3° lean, which the viewer cannot steer out of (repos/pipeline-3d/README.md § compress).
 
 **Dropping spherical harmonics beats decimating.** `-H 0` yields 60 % *more* splats in a smaller file than `-d 25%` alone (159 k / 5.5 MB against 99 k / 6.4 MB): SH encodes view-dependent highlights, which an orbit through a room barely spends. Verified rendering in a browser. The viewer's only external reference is jsDelivr for WebXR controller profiles — allowlisted, and untouched without VR. Its own export button is inert inside an artifact, which grants pages no download permission.
 
