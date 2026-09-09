@@ -28,6 +28,14 @@ images/  →  COLMAP  →  Brush  →  splat-transform  →  model.html
 Each stage skips itself if its output already exists, so a re-run continues where it
 stopped. `--force` recomputes.
 
+`compress` first stands the scene upright. COLMAP anchors its world frame to the first
+registered camera, so a reconstruction lands at whatever attitude that camera had —
+room-niklas came out 74° on its side, and a viewer that yaws around world +Y cannot be
+steered through a room that is lying down. `gravity.mjs` reads the angle back out of the
+camera poses (a hand-held camera is held level, so gravity is the direction perpendicular
+to every camera's right axis) and hands it to `splat-transform -r`. No estimate, no
+rotation — the model then keeps COLMAP's frame, as before.
+
 ## While it runs
 
 One line, overwriting itself: how far the current step has got, and how much longer it

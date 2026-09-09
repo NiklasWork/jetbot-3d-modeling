@@ -9,6 +9,8 @@
 
 set -euo pipefail
 
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # ── defaults ────────────────────────────────────────────────────────────────
 BRUSH="${BRUSH:-$HOME/tools/brush/target/release/brush}"
 SPLAT_TRANSFORM_VERSION="3.3.3"   # pinned — D-004
@@ -342,8 +344,19 @@ say "compress" "splat-transform: .sog, then a self-contained .html"
 # No counter to read: splat-transform's own bar only reaches the log once it
 # has finished. Elapsed time is all there is — and it is what matters here,
 # because this stage is the one that has run away (15 min 21 s once).
+# Stand the scene upright before compressing. COLMAP anchors its world frame to
+# the first registered camera, so every run lands at an arbitrary attitude —
+# room-niklas came out 74° on its side. The viewer yaws around world +Y, clamps
+# pitch against it and forces roll to zero, so an unaligned model cannot be
+# steered: turning rolls the room instead of panning it. gravity.mjs reads the
+# angle back out of the poses; without an estimate the model keeps COLMAP's
+# frame, which is the old behaviour and never worse than it.
+ROTATE=()
+if ROT="$(node "$HERE/gravity.mjs" "$OUT/undistorted/sparse/images.bin")"; then
+  ROTATE=(-r "$ROT")
+fi
 npx -y "@playcanvas/splat-transform@$SPLAT_TRANSFORM_VERSION" \
-    "$OUT/model.ply" --morton-order "$OUT/model.sog" --overwrite 2>&1 | track ".sog"
+    "$OUT/model.ply" "${ROTATE[@]}" --morton-order "$OUT/model.sog" --overwrite 2>&1 | track ".sog"
 npx -y "@playcanvas/splat-transform@$SPLAT_TRANSFORM_VERSION" \
     "$OUT/model.sog" "$OUT/model.html" --overwrite 2>&1 | track ".html"
 
