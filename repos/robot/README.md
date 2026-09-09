@@ -29,6 +29,9 @@ Generates the image folder that `pipeline-3d` processes further — and works wi
 > **None of them has ever run.** They were written against the jetbot 0.4.3
 > sources while the robot was still offline. See *First run on the device*
 > below — start with `checkup.py`, it exists to be the first thing executed.
+> One exception in kind: `capture.py`'s manoeuvres were driven end to end against
+> a stand-in robot and camera, so what is unverified *there* is the hardware, not
+> the sequencing, the abort or the stall detection.
 
 ### `checkup.py` — on the robot, before anything else
 
@@ -72,6 +75,20 @@ COLMAP no parallax), `A`/`D` spin in place anyway, space shoots without moving,
 then stores one frame. Ctrl-C and a crash both stop the motors and release the
 camera.
 
+Five keys drive a whole **manoeuvre** instead of a single step — the same step
+several times over with a frame after each, so you pick the standpoint and the
+robot performs the motion: `o`/`O` orbit left or right, `f` a wall pass, `p`/`P`
+a panorama. Any key stops a running manoeuvre, mid-step while the wheels are
+still turning. It also stops itself when two frames in a row come out identical,
+which is what a robot pushing against furniture produces — `--min-change` skips
+one frame under manual control and ends the whole manoeuvre here.
+
+A panorama is glue for the matcher, never the depth source: a spin on the spot
+gives no parallax, so nothing seen only in those frames can be triangulated. The
+wall pass is the opposite and the reason the manoeuvres exist — driving *past* a
+surface is what produces the baseline 3DGS needs, driving *at* it produces none
+(context/plan-driving.md).
+
 Files are numbered, not timestamped, and the numbering is the interface:
 `pipeline.sh` matches neighbouring filenames as neighbouring viewpoints. Re-running
 with the same name continues the count instead of overwriting.
@@ -90,7 +107,8 @@ The parameters you actually turn:
 | `--speed 0.30` `--drive-time 0.30` `--turn-time 0.25` | how far one step goes. Shorter steps mean more overlap — the pipeline wants 70–80 % between neighbours. |
 | `--turn-inner 0.2` | inner wheel on `a`/`d` as a fraction of the outer. `-1.0` turns them into spins. |
 | `--min-sharpness 0` | Laplacian variance below which a frame is re-shot instead of stored. Off by default because the scale depends on the scene **and on the resolution** — the value is printed for every frame, so run `checkup.py` or drive once, look, then set it to about half the typical number. Changing `--width/--height` later invalidates the threshold. |
-| `--min-change 1.0` | mean pixel difference to the previous frame below which the shot is skipped. Catches a stalled robot filling the folder with one view. |
+| `--min-change 1.0` | mean pixel difference to the previous frame below which the shot is skipped. Catches a stalled robot filling the folder with one view — and it is the whole stop condition for a manoeuvre, so switching it off leaves one running blind. |
+| `--orbit-steps 12` `--pass-steps 10` `--panorama-steps 8` | how many steps one manoeuvre drives. Guesses: the honest number follows from the field of view left after COLMAP's fisheye undistortion, and no real frame has been measured yet. Eight spins close a circle only if one spin turns ~45°. |
 | `--width 1280 --height 960` `--capture-width 1640 --capture-height 1232` | resolution. The defaults are deliberate: jetbot's camera class hard-codes `sensor-mode=3`, which on the IMX219 is natively 1640×1232, and 1280×960 is the largest size worth keeping (D-013). |
 
 ### `jetbot-run.sh` — on the Mac
@@ -175,9 +193,13 @@ step is a script, the rest is judgement.
 3. **Motor deadband and step length.** `--speed 0.30` is a guess; if the robot
    does not move, raise it. Then check the overlap between two frames — the
    pipeline wants 70–80 %.
-4. **Stop on crash.** Ctrl-C mid-drive, and kill the process from a second
+4. **Manoeuvres.** In clear space, `f` with `--pass-steps 3`. The three steps
+   must be the same length as three hand-typed `w` steps, and a key pressed
+   mid-run must stop the wheels at once. Then drive one into an obstacle on
+   purpose: it has to end itself rather than keep pushing.
+5. **Stop on crash.** Ctrl-C mid-drive, and kill the process from a second
    shell — the wheels must stop both times.
-5. **rsync.** macOS ships `openrsync`, which does not always speak to the GNU
+6. **rsync.** macOS ships `openrsync`, which does not always speak to the GNU
    `rsync` on the robot. If the transfer fails, `RSYNC=/opt/homebrew/bin/rsync`.
 
 ## Status

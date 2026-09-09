@@ -4,7 +4,8 @@
 #   python3 capture.py <name> [options]
 #
 # Drive a bit, stop, wait the chassis out, take one sharp frame, repeat, while
-# the human steers with the keyboard over SSH. Writes ~/captures/<name>/ as
+# the human steers with the keyboard over SSH - one key per step, or one key
+# for a whole manoeuvre. Writes ~/captures/<name>/ as
 # frame_0001.jpg, frame_0002.jpg, ... which is exactly what pipeline-3d's
 # sequential_matcher expects: neighbouring filenames are neighbouring views.
 #
@@ -50,6 +51,20 @@ DEFAULT_TURN_TIME = 0.25
 # turning forward at this fraction of the outer one. A/D still spin in place
 # for a single step, for corners that leave no room for an arc.
 DEFAULT_TURN_INNER = 0.2
+
+# Manoeuvres: one key, a sequence of the single steps above, a shot after each
+# (context/plan-driving.md, package 1). The human still picks where to stand;
+# the robot only performs the motion, which is the part a keyboard is bad at.
+#
+# These three counts are guesses, and they are the one thing package 2 exists
+# to replace: how far a step may go follows from the field of view COLMAP's
+# fisheye undistortion actually leaves (D-010), and no real frame has been
+# measured yet. For now they say only "a handful of steps, not one". Eight
+# spins close a panorama only if one spin step turns about 45 deg, which is
+# equally unmeasured - it is not built to close.
+DEFAULT_ORBIT_STEPS = 12
+DEFAULT_PASS_STEPS = 10
+DEFAULT_PANORAMA_STEPS = 8
 
 # Resolution. Every JetBot notebook builds the camera at 224x224 (the ResNet
 # training size); 3DGS needs at least 1280x960, so both the sensor caps and
@@ -109,6 +124,14 @@ KEY_HELP = """  w / s      step forward / backward, then shoot
   a / d      arc left / right, then shoot
   A / D      spin left / right in place, then shoot
   space      shoot without moving
+
+  o / O      orbit left / right    - arc steps around what you stand beside
+  f          wall pass             - forward steps along a wall you drive past
+  p / P      panorama left / right - spins in place. Ties neighbouring views
+                                     together for the matcher; a spin gives no
+                                     parallax, so it is never the depth source
+  any key    stops a running manoeuvre
+
   ?          repeat this list
   q          stop and quit  (Ctrl-C does the same)
 """
@@ -319,6 +342,71 @@ def _motion_for(key, args):
     return table.get(key)
 
 
+def _drive(robot, motion, keys=None):
+    """Run one motion to its end, or until a keystroke cuts it short.
+
+    Returns the interrupting key, or None if the step ran its full time. The
+    wheels stop either way, including when something raises.
+
+    Only manoeuvres pass `keys`. A single manual step is deliberately not
+    interruptible: keystrokes queue up over SSH, and a buffered 'w' that
+    truncated the step before it would quietly shorten the baseline between two
+    neighbouring frames - the quantity the whole overlap budget rests on.
+    Nothing is queued on purpose while a manoeuvre runs, so there a keypress
+    means stop, and the wheels must not run out their remaining tenths first.
+    """
+    left, right, seconds, _ = motion
+    interrupt = None
+    robot.set_motors(left, right)
+    try:
+        if keys is None:
+            time.sleep(seconds)
+        else:
+            deadline = time.time() + seconds
+            while True:
+                remaining = deadline - time.time()
+                if remaining <= 0:
+                    break
+                interrupt = keys.read(min(remaining, 0.05))
+                if interrupt is not None:
+                    break
+    finally:
+        robot.stop()
+    return interrupt
+
+
+def _drain(keys):
+    """Swallow what was typed while a manoeuvre was running.
+
+    Somebody stopping a manoeuvre hits the key more than once. Without this the
+    extra presses would run as single steps the moment it ends.
+    """
+    while keys.read(0) is not None:
+        pass
+
+
+# A manoeuvre repeats one of the single steps above, so the motor values stay
+# in _motion_for() and exist exactly once. Direction is the case of the key:
+# w/a/s/d already spend their case on arc-versus-spin, so o/O and p/P cannot
+# follow that rule and mean left/right instead - KEY_HELP spells it out.
+MANOEUVRES = {
+    "o": ("a", "orbit_steps", "orbit left", "orbit"),
+    "O": ("d", "orbit_steps", "orbit right", "orbit"),
+    "f": ("w", "pass_steps", "wall pass", "pass"),
+    "p": ("A", "panorama_steps", "panorama left", "pano"),
+    "P": ("D", "panorama_steps", "panorama right", "pano"),
+}
+
+
+def _manoeuvre_for(key, args):
+    """(motion, steps, label, tag), or None if the key starts no manoeuvre."""
+    entry = MANOEUVRES.get(key)
+    if entry is None:
+        return None
+    step_key, count_attr, label, tag = entry
+    return _motion_for(step_key, args), getattr(args, count_attr), label, tag
+
+
 def _parse_args(argv):
     parser = argparse.ArgumentParser(
         description="Stop-and-go capture drive on the JetBot (D-013).",
@@ -337,6 +425,13 @@ def _parse_args(argv):
     parser.add_argument("--turn-inner", type=float, default=DEFAULT_TURN_INNER,
                         help="inner wheel as a fraction of the outer one on "
                              "a/d; -1.0 makes them spin in place")
+    parser.add_argument("--orbit-steps", type=int, default=DEFAULT_ORBIT_STEPS,
+                        help="arc steps in one orbit (o/O)")
+    parser.add_argument("--pass-steps", type=int, default=DEFAULT_PASS_STEPS,
+                        help="forward steps in one wall pass (f)")
+    parser.add_argument("--panorama-steps", type=int,
+                        default=DEFAULT_PANORAMA_STEPS,
+                        help="spin steps in one panorama (p/P)")
     parser.add_argument("--width", type=int, default=DEFAULT_WIDTH,
                         help="stored image width")
     parser.add_argument("--height", type=int, default=DEFAULT_HEIGHT,
@@ -373,6 +468,8 @@ def _parse_args(argv):
     if not -1.0 <= args.turn_inner <= 1.0:
         die("--turn-inner must be in [-1.0, 1.0] - it is a fraction of --speed, "
             "and anything past 1.0 drives the inner wheel harder than the outer")
+    if min(args.orbit_steps, args.pass_steps, args.panorama_steps) < 1:
+        die("--orbit-steps, --pass-steps and --panorama-steps must be >= 1")
     if not 1 <= args.quality <= 100:
         die("--quality must be in 1..100")
     if args.width < 1 or args.height < 1:
@@ -442,6 +539,92 @@ def main(argv=None):
                              "re-settling\n".format(score, args.min_sharpness))
         return best, best_gray, best_score
 
+    def step(motion, label, keys=None):
+        """One stop-and-go step: drive, settle, shoot, gate, write, count.
+
+        This is the whole body of the keyboard loop, lifted out so a manoeuvre
+        can run it N times without a second copy of it. Returns what happened -
+        "wrote", "stalled" (the frame repeats the last one), "noframe", or
+        "aborted" when `keys` was given and a keystroke cut the drive short.
+        """
+        nonlocal index, prev_gray, written
+
+        if motion is not None and _drive(robot, motion, keys) is not None:
+            return "aborted"
+
+        frame, gray, score = shoot()
+        if frame is None:
+            return "noframe"
+
+        change = None
+        if prev_gray is not None and prev_gray.shape == gray.shape:
+            change = float(cv2.absdiff(gray, prev_gray).mean())
+            if args.min_change > 0 and change < args.min_change:
+                print("  skipped  {0:<12} nearly identical to the last frame "
+                      "(change {1:.2f} < {2:.2f}) - is the robot stuck?"
+                      .format(label, change, args.min_change))
+                return "stalled"
+
+        if index > MAX_INDEX:
+            sys.stderr.write(
+                "capture: warning - past frame_{0:04d}; wider numbers no "
+                "longer sort next to each other and sequential_matcher "
+                "will pair the wrong images. Start a new capture.\n"
+                .format(MAX_INDEX))
+
+        path = os.path.join(outdir, FRAME_FMT % index)
+        if not cv2.imwrite(path, frame, jpeg_params):
+            die("could not write {0} - SD card full or read-only?".format(path))
+
+        prev_gray = gray
+        written += 1
+        index += 1
+        total = index - 1
+        print("  {0:<8} {1:<12} sharpness {2:>7.0f}{3}   {4} frames, {5}"
+              .format(os.path.basename(path), label, score,
+                      "" if change is None else "  change {0:.2f}".format(change),
+                      total, _elapsed(time.time() - run_start)))
+        # The folder count is what the two thresholds are about, so a resumed
+        # capture crosses them at the right moment, not at the right moment of
+        # this run.
+        if total == MIN_IMAGES:
+            print("           {0} frames - past the minimum pipeline-3d "
+                  "will reconstruct".format(MIN_IMAGES))
+        elif total == MEASURED_LOW:
+            print("           {0} frames - as many as the datasets whose "
+                  "runtimes are measured".format(MEASURED_LOW))
+        return "wrote"
+
+    def run_manoeuvre(motion, steps, label, tag, keys):
+        """Drive one manoeuvre: `steps` identical steps, a shot after each.
+
+        It ends on the first step that stores nothing. A stall ends the whole
+        run here rather than skipping one frame, as it does under manual
+        control: two identical frames in a row are what a robot pushing against
+        furniture produces, and the next step would push again.
+        """
+        print("  {0}, {1} steps - any key stops it".format(label, steps))
+        for number in range(1, steps + 1):
+            if keys.read(0) is not None:
+                _drain(keys)
+                print("  {0} stopped by hand after {1}/{2}"
+                      .format(label, number - 1, steps))
+                return
+            outcome = step(motion, "{0} {1}/{2}".format(tag, number, steps), keys)
+            if outcome == "aborted":
+                _drain(keys)
+                print("  {0} stopped by hand after {1}/{2}"
+                      .format(label, number - 1, steps))
+                return
+            if outcome != "wrote":
+                print("  {0} gave up after {1}/{2} - {3}"
+                      .format(label, number - 1, steps,
+                              "the view stopped changing, so something is in "
+                              "the way" if outcome == "stalled"
+                              else "the camera returned no frame"))
+                return
+        print("  {0} done, {1} steps".format(label, steps))
+
     try:
         camera = _open_camera(args)
         atexit.register(camera.stop)
@@ -470,6 +653,9 @@ def main(argv=None):
                 .format(probe.shape[1], probe.shape[0], args.width, args.height))
         print("         settle {0:.2f} s, step {1:.2f} s at speed {2:.2f}"
               .format(args.settle, args.drive_time, args.speed))
+        if args.min_change <= 0:
+            print("         note: --min-change is off, so nothing notices that "
+                  "a manoeuvre has stopped moving")
         print("")
         print(KEY_HELP)
 
@@ -485,58 +671,16 @@ def main(argv=None):
                     print(KEY_HELP)
                     continue
 
+                plan = _manoeuvre_for(key, args)
+                if plan is not None:
+                    motion, steps, label, tag = plan
+                    run_manoeuvre(motion, steps, label, tag, keys)
+                    continue
+
                 motion = _motion_for(key, args)
                 if motion is None and key != " ":
                     continue
-
-                label = "in place"
-                if motion is not None:
-                    left, right, seconds, label = motion
-                    robot.set_motors(left, right)
-                    time.sleep(seconds)
-                    robot.stop()
-
-                frame, gray, score = shoot()
-                if frame is None:
-                    continue
-
-                change = None
-                if prev_gray is not None and prev_gray.shape == gray.shape:
-                    change = float(cv2.absdiff(gray, prev_gray).mean())
-                    if args.min_change > 0 and change < args.min_change:
-                        print("  skipped  {0:<10} nearly identical to the last "
-                              "frame (change {1:.2f} < {2:.2f}) - is the robot "
-                              "stuck?".format(label, change, args.min_change))
-                        continue
-
-                if index > MAX_INDEX:
-                    sys.stderr.write(
-                        "capture: warning - past frame_{0:04d}; wider numbers no "
-                        "longer sort next to each other and sequential_matcher "
-                        "will pair the wrong images. Start a new capture.\n"
-                        .format(MAX_INDEX))
-
-                path = os.path.join(outdir, FRAME_FMT % index)
-                if not cv2.imwrite(path, frame, jpeg_params):
-                    die("could not write {0} - SD card full or read-only?".format(path))
-
-                prev_gray = gray
-                written += 1
-                index += 1
-                total = index - 1
-                print("  {0:<8} {1:<10} sharpness {2:>7.0f}{3}   {4} frames, {5}"
-                      .format(os.path.basename(path), label, score,
-                              "" if change is None else "  change {0:.2f}".format(change),
-                              total, _elapsed(time.time() - run_start)))
-                # The folder count is what the two thresholds are about, so a
-                # resumed capture crosses them at the right moment, not at the
-                # right moment of this run.
-                if total == MIN_IMAGES:
-                    print("           {0} frames - past the minimum pipeline-3d "
-                          "will reconstruct".format(MIN_IMAGES))
-                elif total == MEASURED_LOW:
-                    print("           {0} frames - as many as the datasets whose "
-                          "runtimes are measured".format(MEASURED_LOW))
+                step(motion, "in place" if motion is None else motion[3])
 
     except KeyboardInterrupt:
         print("\ncapture: interrupted")
