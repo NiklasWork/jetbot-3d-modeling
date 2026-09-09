@@ -117,6 +117,35 @@ Also settable: `JETBOT_HOST` (default `jetbot`, meant to be a `~/.ssh/config`
 entry so no IP is pinned here), `JETBOT_CAPTURES` (default `<repo>/captures`),
 `JETBOT_CAMERA`, `JETBOT_REMOTE_DIR`, `RSYNC`.
 
+## Our footprint on the robot
+
+Other projects run on this device. Everything we put on it stays inside the three
+paths below, and anything outside them is somebody else's — that is the whole rule
+(VISION.md, *Leave the robot as we found it*).
+
+| Path | Written by | What it is |
+|---|---|---|
+| `~/jetbot-3d/` | you, by hand | where these scripts live. One folder, no installer |
+| `~/captures/<name>/` | `capture.py` | `frame_NNNN.jpg` per drive; `--root` moves it |
+| `~/checkup/` | `checkup.py` | its burst frames; `--outdir` moves it. It deletes its own frames afterwards and removes the folder again if it was the one that created it — `--keep` is what stops that |
+
+Nothing else. No `apt`, no `pip install`, no systemd unit, no file under `/etc` or
+`/usr`, no change to the JetBot notebooks. Both scripts import only from the
+delivered stack — `jetbot`, `cv2`, and the standard library (D-008).
+
+Three things are shared and cannot be made private, so they need a word before a drive:
+
+- **The camera is exclusive.** While `capture.py` or `checkup.py` runs, nothing else
+  gets a frame — and the reverse holds, which is why the first troubleshooting step
+  is closing the Jupyter notebooks.
+- **`sudo systemctl restart nvargus-daemon` is the one command here that reaches
+  outside our own files.** It is the documented remedy when the camera will not
+  start, and it kills whatever else was holding the sensor. Ask before running it on
+  a robot someone else is using.
+- **The SD card is one card.** A drive is hundreds of megabytes. `checkup.py`
+  reports the free space it measured; fetch a capture to the Mac with
+  `jetbot-run.sh` and delete it on the robot rather than letting drives pile up.
+
 ## First run on the device
 
 Nothing below could be tested from the Mac. Check it in this order — the first

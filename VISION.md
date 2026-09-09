@@ -19,10 +19,12 @@ Driving is manual, a driving algorithm is an optional expansion (D-006). Staged 
 - Quick small wins instead of long planning cycles
 - Fun project — visuals count: a result that looks cool beats a complete one
 - Functional instead of facade — do not demonstrate anything that doesn't actually run
+- **Leave the robot as we found it** — it is shared hardware; touch as little of it as possible, and be able to say at any moment which files, folders and processes on it are ours
 
 ## Constraints
 
 - Hardware: Waveshare JetBot (Jetson Nano 4GB, IMX219 160° camera, assembled and flashed), MacBook Air M4 24GB (fanless), Lenovo home server 35GB RAM CPU-only with Coolify — remote, high latency, ~9 Mbit/s upload
+- **The JetBot is not ours alone** — other projects run on the same device. Anything we add has to be removable, has to stay out of the shared parts of the system, and has to be documented as ours; the SD card, the camera and the GPU are contended resources, not ours to fill. What this rules out is not written here but where the work is: `repos/robot/README.md` § Our footprint. It is a second, independent reason for D-008 (the stack stays as delivered) — an update would not only buy us nothing, it would break someone else's project
 - No NVIDIA GPU server — all ML workloads must run on Apple Silicon / Metal
 - Team works via Agentic Engineering (AI-supported development via this channel)
 - No fixed deadline — university group work
