@@ -24,3 +24,10 @@ desktop.ini
 # project is one directory, but they never enter the history — a single drive
 # is hundreds of megabytes.
 captures/
+
+# Presentation build output and the viewer asset it inlines. Both are generated
+# — `presentation/build.py` rebuilds the deck from the template and the assets,
+# and its docstring carries the splat-transform recipe for the viewer. Same
+# reasoning as captures/: reproducible bulk does not belong in the history.
+presentation/deck.html
+presentation/assets/room.html

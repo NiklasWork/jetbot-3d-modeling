@@ -1,8 +1,8 @@
 ---
-focus: One HTML artifact that pitches the idea, explains the architecture and shows the honest status — for a 10–15 min university talk and as a link afterwards
+focus: Built and published — https://claude.ai/code/artifact/310cd4ee-8355-4ff1-8a2f-d573f145f703 · awaiting the human's review
 next:
-  - Produce the assets, own ones first (§ Assets)
-  - Build the artifact in the order under § Build
+  - Human review of the published deck
+  - Swap the embedded model for a JetBot capture once the robot has produced one (§ Assets)
 blockers: none
 ---
 
@@ -49,7 +49,7 @@ Emergence borrows the look of the thing being built: soft translucent blooms res
 
 ## Interaction — these six, nothing else
 
-Deck/doc toggle · the embedded room viewer (section 14 only, loads on arrival) · a scrubber over the real PSNR curve · pipeline stages that reveal their measured time and failure mode · status branches that expand into per-package state · the algorithm cards including the empty `?`.
+Deck/doc toggle · the embedded room viewer (section 14 only, built on an explicit click) · a scrubber over the real PSNR curve · pipeline stages that reveal their measured time and failure mode · status branches that expand into per-package state · the algorithm cards including the empty `?`.
 
 Anything beyond this is decoration a projector cannot use.
 
@@ -61,14 +61,14 @@ Anything beyond this is decoration a projector cannot use.
 
 **Everything embeds as a data URI.** The Artifact CSP blocks external images outright, and the whole page must stay under 16 MB.
 
-**The room model, measured 2026-09-09.** `runs/room-niklas/model.html` is 11.8 MB — three quarters of the budget. Recipe that fits:
+**The room model, measured 2026-09-09.** A pipeline `model.html` is ~12 MB — three quarters of the budget. Recipe that fits, run against the source `.sog`:
 
 ```
-splat-transform model.sog -H 0 -F -d 40% room.ply     # 12 s
-splat-transform room.ply room.html                    # 158 k splats, 5.5 MB
+splat-transform <run>/filtered.sog -H 0 -F -d 40% x.ply   # ~10 s
+splat-transform x.ply presentation/assets/room.html       # 159 k splats, 5.5 MB
 ```
 
-**Dropping spherical harmonics beats decimating.** `-H 0` yields 60 % *more* splats in a smaller file than `-d 25%` alone (158 k / 5.5 MB against 99 k / 6.4 MB): SH encodes view-dependent highlights, which an orbit through a room barely spends. Verified rendering in a browser. The viewer's only external reference is jsDelivr for WebXR controller profiles — allowlisted, and untouched without VR.
+**Dropping spherical harmonics beats decimating.** `-H 0` yields 60 % *more* splats in a smaller file than `-d 25%` alone (159 k / 5.5 MB against 99 k / 6.4 MB): SH encodes view-dependent highlights, which an orbit through a room barely spends. Verified rendering in a browser. The viewer's only external reference is jsDelivr for WebXR controller profiles — allowlisted, and untouched without VR. Its own export button is inert inside an artifact, which grants pages no download permission.
 
 ## Status semantics
 
@@ -80,8 +80,12 @@ Section 13 falls under the same rule: automatic deploy is postponed (state/profi
 
 ## Build
 
-Assets → content as one JS data object → shell with the deck/doc mechanism → sections → architecture diagram as inline SVG → prose through the `stop-slop` skill → publish.
+`presentation/deck.template.html` holds the page; `presentation/assets/` holds what travels inside it; `python3 presentation/build.py` injects the assets and writes `presentation/deck.html`, which is what gets published. Edit the template, never `deck.html`.
+
+The viewer goes into a `<script type="text/plain">` block with `</script` swapped for a sentinel the page restores at runtime — unlike base64 that costs no size. `build.py` refuses to write if a placeholder is unfilled or the page passes 16 MB. Its placeholder scan reads the template, never the output: the viewer bundle carries its own `__PURE__` annotations.
+
+**The dataset is the public Deep Blending `drjohnson` capture, chosen 2026-09-09.** The `room-niklas` run reconstructs a private bedroom, and the deck is projected to a class and shared as a link. Do not swap it back; the replacement to want is the JetBot's own first capture.
 
 ## Not this
 
-No video: the robot has never been on the network, so any footage of it would be staged — the one thing VISION.md rules out. The training progression is animated from the measured PSNR curve instead. No second artifact, no slide framework, no build step.
+No video: the robot has never been on the network, so any footage of it would be staged — the one thing VISION.md rules out. The training progression is animated from the measured PSNR curve instead. No second artifact and no slide framework — the only build step is one Python file that inlines the assets.
