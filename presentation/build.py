@@ -7,10 +7,20 @@ blocks every external image and media host.
 
     python3 presentation/build.py
 
-Regenerating the viewer asset after a new pipeline run:
+Regenerating the two generated assets after a new pipeline run:
 
-    splat-transform <run>/filtered.sog -H 0 -F -d 40% /tmp/x.ply
+    python3 presentation/pointcloud.py <run>          # writes assets/pointcloud.json
+
+    splat-transform <run>/filtered.sog \
+      -r $(node repos/pipeline-3d/gravity.mjs <run>/undistorted/sparse/images.bin) \
+      -H 0 -F -d 40% /tmp/x.ply
     splat-transform /tmp/x.ply presentation/assets/room.html
+
+**The `-r` is not optional.** COLMAP anchors its world frame to the first
+registered camera, so a reconstruction lands at an arbitrary attitude and
+drjohnson lands 14.3 degrees off level. The SuperSplat viewer assumes +Y is up
+and cannot be steered out of a lean. `pointcloud.py` applies the same rotation
+to the sparse cloud itself, for the same reason.
 """
 
 import base64
@@ -52,7 +62,6 @@ def main():
         "__ROOM_HTML__": room,
         "__POINTCLOUD__": read(os.path.join(ASSETS, "pointcloud.json")),
         "__IMG_F6320__": data_uri("f6320.jpg", "image/jpeg"),
-        "__IMG_F6440__": data_uri("f6440.jpg", "image/jpeg"),
         "__IMG_DETECTNET__": data_uri("detectnet.jpg", "image/jpeg"),
     }
     # Scan the template, never the result: the viewer bundle carries its own

@@ -1,8 +1,7 @@
 ---
 focus: The robot drives controlled and stores sharp, properly sized images in a folder
 next:
-  - Package 1 — Boot robot, connect to WiFi, reach Jupyter in the browser
-  - Package 2 — Control and live image from the included notebooks
+  - Package 2 — Control and live image from the included notebooks, and one frame that shows what the fixed downward mount actually frames
   - Package 3 — `checkup.py` first on the device: it decides whether the camera reaches 1280×960 and whether the card keeps up
   - Packages 3 and 4 — never executed; accept on the device per repos/robot/README.md § First run
 blockers: none
@@ -16,11 +15,12 @@ blockers: none
 
 Everything here runs on Python 3.6 (D-008). Each package can be accepted individually.
 
-1. **Robot on network.** Boot, setup WiFi, reach Jupyter in the browser. No SD-card backup is taken — HT-001 settled that recovery is a re-download of the delivery image.
-   *Done when:* `basic_motion` moves the wheels from the browser.
+1. ✅ **Robot on network.** Boot, setup WiFi, reach Jupyter in the browser. No SD-card backup is taken — HT-001 settled that recovery is a re-download of the delivery image.
+   *Done when:* `basic_motion` moves the wheels from the browser. — **Accepted 2026-09-09.** Boot, WiFi and Jupyter reached, `basic_motion` drives the wheels. Motion only; the camera side of the notebooks is package 2.
 
-2. **Control and image.** Put the included `teleoperation` notebook into operation. Mount camera as high as the chassis allows, tilted slightly upwards.
+2. **Control and image.** Put the included `teleoperation` notebook into operation.
    *Done when:* you drive and see the live image while doing so.
+   *The mount does not tilt, and the plan assumed it did.* This file and context/architecture.md both said "as high as the chassis allows, tilted slightly upwards"; the delivered bracket is fixed and points **downwards**. So the capture geometry is not a setting, it is a given, and the open question is what that given actually frames: a camera 10 cm off the floor looking down may return mostly floor, with walls at the top edge and the ceiling not at all. Nothing about this is measured. Photograph one frame from the standing robot before any capture drive is planned around it, and if it is as bad as it looks, the fixes are physical (shim the bracket, raise the mount) and belong in HUMAN-TODOS.md, not in code.
 
 3. **Capture script.** The stop-and-go loop from D-013: drive a bit → stop → wait for oscillation to settle → shot → repeat, while the human dictates the direction. Scale down images to at most 1280×960, in color. Filenames are **sequentially numbered, not timestamped** — the numbering is the interface to `sequential_matcher`, and a timestamp adds nothing the file mtime does not already carry while giving the sort order one more way to break.
    *Done when:* a drive generates a folder in which randomly checked images are sharp. — `repos/robot/capture.py` is written but has **never been executed**, on hardware or otherwise; nothing about it is verified. `repos/robot/checkup.py` is the first thing to run on the device and settles the resolution and write-rate questions below before a drive is attempted.

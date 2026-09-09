@@ -24,7 +24,7 @@ Every stage is demonstrable on its own. No stage depends on a later one.
 
 1. **Stage 0 — Pipeline without robot.** Public dataset → Brush with live viewer on the Mac → `.sog` → SuperSplat **locally on the Mac**. Proves the entire back half and immediately delivers the visually strongest artifact of the project. The rollout to the Lenovo is postponed: it only changes the address where the same viewer resides, and will be caught up at the end if needed.
 2. **Stage 1 — Robot drives, image arrives.** Manual control with live camera image in the browser. Depends on nothing from stage 0.
-3. **Stage 2 — Connect.** Robot captures, Mac computes, result lands in the viewer. Capture geometry is the quality factor here: camera as high as the chassis allows and tilted slightly upwards, loops instead of straight driving, lots of light, better a well-captured room section than a poorly captured entire room.
+3. **Stage 2 — Connect.** Robot captures, Mac computes, result lands in the viewer. Capture geometry is the quality factor here: loops instead of straight driving, lots of light, better a well-captured room section than a poorly captured entire room. **Correction 2026-09-09:** this stage used to prescribe "camera as high as the chassis allows and tilted slightly upwards". The delivered mount is fixed and tilted downwards, so that was never available. What the fixed tilt actually frames is unmeasured and is now context/plan-robot.md package 2.
 4. **Stage 3 — Expansion.** In any order: object detection with 3D placement in the model (D-012), driving algorithm, rollout to the Lenovo, reconstruction during the drive.
 
 ## Two development branches

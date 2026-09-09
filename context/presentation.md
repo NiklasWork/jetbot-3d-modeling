@@ -1,9 +1,9 @@
 ---
-focus: Built and published — https://claude.ai/code/artifact/310cd4ee-8355-4ff1-8a2f-d573f145f703 · awaiting the human's review
+focus: Rebuilt and republished 2026-09-09 against the human's review — 11 sections, robot left and Mac right throughout, levelled viewer and levelled point cloud both live. https://claude.ai/code/artifact/310cd4ee-8355-4ff1-8a2f-d573f145f703
 next:
-  - Human review of the published deck
+  - Human review of the rebuilt deck
+  - A photograph of the JetBot, the one image nobody but us can produce (§ Assets)
   - Swap the embedded model for a JetBot capture once the robot has produced one (§ Assets)
-  - Republish the artifact — `deck.html` on disk carries the levelled viewer (rebuilt 2026-09-09), but was not published because another session had the deck's sources open at the time
 blockers: none
 ---
 
@@ -15,28 +15,37 @@ blockers: none
 
 **One HTML file, two modes.** A key toggles between *deck* (arrow keys, one full-viewport section, projector-sized type) and *doc* (the same sections unrolled and scrollable, for sharing after the talk). One content tree, two presentations — a second artifact would drift from the first.
 
-English. 10–15 minutes, roughly a minute per section. Published as an Artifact.
+English. Published as an Artifact.
 
-Combines three things a university audience needs at once: the idea pitch, the developer-facing architecture, and the roadmap with its real status.
+**This is an idea being presented, not a deliverable being defended.** Settled 2026-09-09: no grade, no time budget, no external requirement list. Everything in it is therefore changeable, and "the brief asked for it" is never a reason to keep something.
+
+Combines three things at once: the idea pitch, the developer-facing architecture, and the roadmap with its real status.
+
+## The one structural rule
+
+**Left is the robot, right is the Mac, on every slide that has two sides.** The idea, the two meanings of "model", the architecture lanes, the numbers, the open-source rail: all of them read client on the left, server on the right. A slide that breaks it costs the audience the one piece of orientation the deck hands them for free.
 
 ## Sections
 
+Rebuilt 2026-09-09 from 14 to 11 on the human's review. The three that went: *How the work is split* (the left-right rule carries it now, and its two surviving facts are footnotes under the architecture), *What happens next* and *Vision* — both cut outright, so automatic deploy is gone from the deck entirely rather than relocated.
+
 | # | Section | Source |
 |---|---|---|
-| 1 | Thesis — a room appears on the screen beside the robot | APPLICATION-VISION.md |
-| 2 | The idea in one screen | VISION.md |
-| 3 | "Model" means two different things here | APPLICATION-VISION.md |
-| 4 | Architecture: JetBot · Mac · Lenovo, boundary is latency | context/architecture.md |
-| 5 | The pipeline and its single point of failure | APPLICATION-VISION.md |
-| 6 | The numbers: capture side and compute side | context/measurements.md |
-| 7 | Open source we stand on — role, licence, preview | state/profile.md |
-| 8 | Two branches, one deliberately dumb interface | D-011 |
-| 9 | Capture manoeuvres, and why parallax decides | context/plan-driving.md |
-| 10 | Driving algorithm: approaches, including an open slot | D-014, context/plan-driving.md |
-| 11 | Status board | the three plan files |
-| 12 | Roadmap and the one physical blocker | state/current.md |
-| 13 | Vision: a run deploys itself — **marked as vision, not built** | D-007 |
-| 14 | Live: the room, in the browser | § Assets |
+| 1 | What this is, in plain words, and four numbers whose labels explain them | VISION.md |
+| 2 | The idea as two lanes: cover and photograph · turn photos into a model | VISION.md, D-013 |
+| 3 | "Model" means two things: the driving model (left, open) · the 3D model (right, built) | APPLICATION-VISION.md |
+| 4 | Architecture as a two-lane activity diagram, with the capture loop and the registration gate | context/architecture.md |
+| 5 | What one run costs: a stage bar whose widths are the measured seconds | context/measurements.md |
+| 6 | Open source placed on the workflow, each project expanding into role, licence and a picture | state/profile.md |
+| 7 | Three ways to drive: a fixed script · a trained model · an open slot | D-014, context/plan-driving.md |
+| 8 | The one rule any of the three has to satisfy: sideways motion | context/plan-driving.md |
+| 9 | Status board | the three plan files |
+| 10 | The open problem: the camera is fixed and points down | context/plan-robot.md package 2 |
+| 11 | The example model, live in the browser | § Assets |
+
+**Section 7 carries the weight.** It is the part the group works on next, so the trained-model option names its requirements in full — labelled frames, ResNet-18 trained on the device, camera-only input, the beat-the-mean bar, exclusive time on shared hardware — instead of standing as one line beside the others. Section 8 exists only to give those three options a shared measuring stick, which is why it was cut from a full slide down to one figure and one paragraph.
+
+**Every number on a slide states what it is a number of.** Settled 2026-09-09 after a bare `380 s` and a bare `15.1×` reached the human and meant nothing to him. A figure carries a label a stranger can read, or it comes off the slide.
 
 ## Visual direction — Emergence
 
@@ -50,17 +59,27 @@ Emergence borrows the look of the thing being built: soft translucent blooms res
 
 ## Interaction — these six, nothing else
 
-Deck/doc toggle · a light/dark toggle, light by default · the embedded room viewer (section 14 only, built on an explicit click) · a scrubber over the real PSNR curve · pipeline stages that reveal their measured time and failure mode · status branches that expand into per-package state · the algorithm cards including the empty `?`.
+Deck/doc toggle · a light/dark toggle, light by default · pipeline stages that reveal their measured time and failure mode · open-source projects that expand into role, licence and a picture · status branches that fold away · the embedded room viewer, section 11 only, built on an explicit click.
 
-Anything beyond this is decoration a projector cannot use.
+**The PSNR scrubber is gone** (2026-09-09). It asked the audience to understand decibels before it paid anything back. The same curve is now a static figure with plain-language axes and one claim written on it, which is what the interaction existed to produce.
+
+**The status board arrives open.** Three collapsed bars read as an empty slide, and the detail is the point of it. Clicking folds a branch away rather than opening it.
+
+Anything beyond this list is decoration a projector cannot use.
 
 ## Assets
 
-**Own material first.** COLMAP point cloud, Brush training window and the finished viewer all exist in `repos/pipeline-3d/runs/`. Screenshots of our own runs are stronger than borrowed ones and carry no licence question. Foreign material is needed only for `jetson-inference`; the JetBot itself can be photographed.
+**Own material first.** Screenshots of our own runs are stronger than borrowed ones and carry no licence question. Foreign material appears exactly once, for `jetson-inference`, credited on the same card.
+
+**The JetBot still has no photograph**, and it is the one image nobody outside this project can produce. Section 6's JetBot card and section 10's sketch would both take one.
+
+**No still of our own finished model, and this was tried.** Four camera positions in the viewer on 2026-09-09, every one of them fog: `context/measurements.md` already records that indoor runs come out hazy and that the viewer's opening camera sits inside the haze. A person can move past it in the live viewer on section 11, which is the honest way to show this model. A still would sell it under value.
+
+**The point cloud is the opening image.** COLMAP recovered **81 051** points in the reference run; the deck draws 24 000 of them, rotating, to the right of the headline. Two corrections on 2026-09-09: an earlier build drew 6 000 and captioned them `31 086`, a number with no source anywhere in the repo; and the cloud carried the same 14.3° lean as the viewer. `presentation/pointcloud.py` now writes it, gravity rotation included, from the same `gravity.mjs` the viewer recipe uses.
 
 **Foreign material carries a licence line** — project · licence · link — on the same card. Brush Apache-2.0, COLMAP BSD, SuperSplat / jetson-inference / JetBot MIT all permit redistribution with attribution.
 
-**Everything embeds as a data URI.** The Artifact CSP blocks external images outright, and the whole page must stay under 16 MB.
+**Everything embeds as a data URI.** The Artifact CSP blocks external images outright, and the whole page must stay under 16 MB. Current build: 6.53 MB.
 
 **The room model, measured 2026-09-09.** A pipeline `model.html` is ~12 MB — three quarters of the budget. Recipe that fits, run against the source `.sog`:
 
@@ -76,11 +95,13 @@ splat-transform x.ply presentation/assets/room.html       # 159 k splats, 5.5 MB
 
 ## Status semantics
 
-Three states, one legend, no fourth: **green** built and measured · **amber** written, never run on hardware · **grey** open. Counts at 2026-09-09 — pipeline-3d 5/6, robot 0/5, driving 1/6 — and the blocker named in plain words.
+Three states, one legend, no fourth: **green** built and tested · **amber** written, never run on the robot · **grey** open. Counts at 2026-09-09 — pipeline-3d 5/6, robot **1/5**, driving 0/2.
+
+**The robot's first package went green on 2026-09-09**: boot, WiFi, Jupyter and `basic_motion` driving the wheels are accepted by the human (state/current.md, context/plan-robot.md). Two legend contradictions went with it: the transfer script showed grey while its own text called it written-and-unrun, which the legend calls amber, and the capture script did the same.
+
+**The driving branch is deliberately two lines, not six.** Nothing there is decided, so the deck shows the fixed script (amber) and a trained model (open) and stops. The six planning packages stay in context/plan-driving.md where they belong.
 
 This is not a presentational choice. VISION.md's *functional instead of facade* forbids showing what does not run, and "we built the half that could be built without the hardware, and measured it instead of guessing" is the stronger claim in front of a class anyway.
-
-Section 13 falls under the same rule: automatic deploy is postponed (state/profile.md), so it appears as vision and says so. The ~9 Mbit/s ceiling constrains the *download* by a full lecture hall, not the 6.7 MB upload.
 
 ## Build
 
@@ -88,12 +109,14 @@ Section 13 falls under the same rule: automatic deploy is postponed (state/profi
 
 The viewer goes into a `<script type="text/plain">` block with `</script` swapped for a sentinel the page restores at runtime — unlike base64 that costs no size. `build.py` refuses to write if a placeholder is unfilled or the page passes 16 MB. Its placeholder scan reads the template, never the output: the viewer bundle carries its own `__PURE__` annotations.
 
+**Two canvas traps, both hit and both fixed 2026-09-09.** A canvas painted only from `requestAnimationFrame` stays blank when the deck opens in a background tab, so the opening cloud draws its first frame synchronously and starts the loop after it. And a canvas created by an `innerHTML` swap has no box on the tick that creates it: drawing straight away sized it 2×2 and the browser stretched four pixels across the whole card, which looks like a styling bug and is not one. The open-source card waits for a layout on a timer, not a frame callback, for the same background-tab reason.
+
 **The dataset is the public Deep Blending `drjohnson` capture, chosen 2026-09-09.** The `room-niklas` run reconstructs a private bedroom, and the deck is projected to a class and shared as a link. Do not swap it back; the replacement to want is the JetBot's own first capture.
 
 ## Prose
 
-Both slop skills are installed and were applied to every visible string on 2026-09-09: `stop-slop` (`.claude/skills/stop-slop/`, its three `references/` fetched from upstream, TF-003) and `no-ai-slop` (`.claude/skills/no-ai-slop/`, imported direct, scanned first — see `.claude/SOURCES.md`). 45 edits. The visible copy carries **no em dashes**; the remaining ones are in code comments. Keep it that way when editing the template.
+Both slop skills are installed and were applied to every visible string on 2026-09-09: `stop-slop` (`.claude/skills/stop-slop/`, its three `references/` fetched from upstream, TF-003) and `no-ai-slop` (`.claude/skills/no-ai-slop/`, imported direct, scanned first — see `.claude/SOURCES.md`). The visible copy carries **no em dashes** and none of the banned vocabulary, re-checked after the 2026-09-09 rebuild replaced most of it; the remaining dashes are in code comments. Keep it that way when editing the template.
 
 ## Not this
 
-No video: the robot has never been on the network, so any footage of it would be staged — the one thing VISION.md rules out. The training progression is animated from the measured PSNR curve instead. No second artifact and no slide framework — the only build step is one Python file that inlines the assets.
+No video: the robot has never driven a capture, so any footage of it would be staged — the one thing VISION.md rules out. No second artifact and no slide framework — the build is two Python files, one that writes the point cloud and one that inlines the assets.
