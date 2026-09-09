@@ -10,4 +10,6 @@ branch: main
 
 blockers: robot not on the network — first boot, WiFi and SSH are physical acts
 
+latent: [2026-09-09] the JetBot is shared with other projects (VISION.md). Two things already point the other way and were written before that was known: plan-driving package 5 trains on the device for hours, and `--min-sharpness` tuning wants repeated drives. Neither is decided; both are flagged where they live
+
 latent: [2026-09-08] `doctor` reports `ST-09` naming 4 engine files as locally adapted — that is upstream's stale manifest, not an edit of ours; never "restore" the engine over it. Clears when upstream cuts a release that regenerates `MANIFEST.sha256`; see TF-001
