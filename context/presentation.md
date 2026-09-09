@@ -3,6 +3,7 @@ focus: Built and published — https://claude.ai/code/artifact/310cd4ee-8355-4ff
 next:
   - Human review of the published deck
   - Swap the embedded model for a JetBot capture once the robot has produced one (§ Assets)
+  - Rebuild the embedded viewer through the aligned pipeline — the Dr Johnson model in it hangs 14.3° off level, measured from its poses; republishing the artifact is a human call
 blockers: none
 ---
 
