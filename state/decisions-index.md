@@ -16,3 +16,4 @@
 - **D-011** — Two independent repos under repos/
 - **D-012** — Object detection on the robot, 3D placement on the Mac
 - **D-013** — Stop-and-Go with script-controlled capture
+- **D-014** — Semi-autonomous manoeuvres as the driving algorithm

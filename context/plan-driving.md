@@ -1,15 +1,14 @@
 ---
 focus: The robot drives the capture manoeuvre itself while the human picks where
 next:
-  - Package 1 — Manoeuvre library in capture.py
   - Package 2 — Step size against the undistorted field of view
   - Package 3 — A whole room by manoeuvres, measured against a hand-driven one
-blockers: gated on OD-003 and on plan-robot package 5 — see "Relation to decisions"
+blockers: packages 2 and 3 need the robot on the network — both are measurements, and neither can be faked
 ---
 
 # Plan driving algorithm
 
-> Belongs here: the expansion in which the robot performs the capture motion itself. Not here: the path to the first prototype (context/plan-robot.md), hardware facts (context/architecture.md), the undecided question itself (state/open-decisions.md, OD-003).
+> Belongs here: the expansion in which the robot performs the capture motion itself. Not here: the path to the first prototype (context/plan-robot.md), hardware facts (context/architecture.md), the decision itself (D-014).
 
 **Expansion reached when:** a drive in which the human only picks standpoints, and the robot performs every capture manoeuvre, yields a model at least as good as a hand-driven drive of the same room.
 
@@ -34,6 +33,7 @@ Each is individually acceptable. Everything runs on Python 3.6 (D-008); nothing 
 
 1. **Manoeuvre library.** One key runs a *sequence* of the single steps `capture.py` already has, with a shot after each: **orbit** (N× arc), **wall pass** (N× forward), **panorama** (N× spin). The two seams it needs exist — the `_motion_for()` key table and the `shoot()` closure — but the per-step sequence around them (drive, settle, shoot, min-change check, write, bump the index, print) is inlined in `main()`'s keyboard loop, so it has to be lifted into one callable step first, with abort polling threaded through it. Pick the manoeuvre keys explicitly and check them against the bindings `capture.py` already documents. Panorama is connective tissue for the matcher, never the depth source — say so at the key. Safety is part of this package, not a later one: any keypress aborts mid-run, and the `--min-change` gate that today skips one frame must end the whole manoeuvre, since identical consecutive frames are what a robot pushing against furniture produces.
    *Done when:* one keypress drives a full manoeuvre and writes its frames; any key aborts it mid-run with the wheels stopped; and a manoeuvre driven into an obstacle ends by itself within two frames.
+   **Built 2026-09-09** — keys `o`/`O`, `f`, `p`/`P`. All three conditions hold against a stand-in robot and camera on a pty; none has met a motor, so re-check them on the device (repos/robot/README.md, *First run on the device* step 4).
 
 2. **Step size against the undistorted field of view.** Steps per manoeuvre must be set against the field COLMAP's fisheye undistortion actually leaves (D-010), not against the raw 160° — the undistortion crops hard, and the remaining field is what governs overlap. Measure it on real frames, then fix the defaults.
    *Done when:* neighbouring undistorted frames from one manoeuvre overlap 70–80 %, and those step counts are the defaults in `capture.py`.
@@ -59,4 +59,4 @@ The live overlay that perception would have bought for the presentation is alrea
 
 ## Relation to decisions
 
-D-006 holds unchanged — manual control stays the outer loop and this is the "optional expansion" it names. Its consequence clause also defers the decision itself until the vertical slice has run, so the choice lives in OD-003 and earns a D-NNN only after plan-robot package 5. D-013 (stop-and-go) is unchanged: a manoeuvre is several stop-and-go steps in a row.
+D-006 holds unchanged — manual control stays the outer loop and this is the "optional expansion" it names. The expansion itself is decided: D-014, taken on 2026-09-09 ahead of the vertical slice that D-006's consequence clause had made the trigger. D-013 (stop-and-go) is unchanged: a manoeuvre is several stop-and-go steps in a row.
