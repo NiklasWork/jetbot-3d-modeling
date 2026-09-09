@@ -43,13 +43,13 @@ Chosen 2026-09-09 from three specimens, all three kept in `presentation/directio
 
 Emergence borrows the look of the thing being built: soft translucent blooms resolving into form, so the page reads like the artifact it describes. Fraunces 600 as display, Karla as body. `#F4F4F7` ground · `#1D1C2A` ink · `#5B4BD6` accent · `#D64B92` secondary bloom.
 
-**Its one weakness, and the fix.** A light ground is the weakest of the three under lecture-hall lighting. Deck mode therefore takes a deep-indigo counterpart of the same palette — same faces, same blooms, inverted ground — while doc mode keeps the light one. The two modes already exist for other reasons, so this costs a token set, not a second design.
+**Light is the default in both modes, on any host theme.** An earlier build tied the palette to the mode and forced deck mode dark, which silently replaced the direction that had been chosen. The mode now decides layout only. Dark is a real toggle (`t`, remembered per browser) for a hall where a pale ground washes out — the human's call at the podium, not a build-time one.
 
 **Keep the blooms behind the type, never around it.** That is the line between this direction and decoration.
 
 ## Interaction — these six, nothing else
 
-Deck/doc toggle · the embedded room viewer (section 14 only, built on an explicit click) · a scrubber over the real PSNR curve · pipeline stages that reveal their measured time and failure mode · status branches that expand into per-package state · the algorithm cards including the empty `?`.
+Deck/doc toggle · a light/dark toggle, light by default · the embedded room viewer (section 14 only, built on an explicit click) · a scrubber over the real PSNR curve · pipeline stages that reveal their measured time and failure mode · status branches that expand into per-package state · the algorithm cards including the empty `?`.
 
 Anything beyond this is decoration a projector cannot use.
 
@@ -85,6 +85,10 @@ Section 13 falls under the same rule: automatic deploy is postponed (state/profi
 The viewer goes into a `<script type="text/plain">` block with `</script` swapped for a sentinel the page restores at runtime — unlike base64 that costs no size. `build.py` refuses to write if a placeholder is unfilled or the page passes 16 MB. Its placeholder scan reads the template, never the output: the viewer bundle carries its own `__PURE__` annotations.
 
 **The dataset is the public Deep Blending `drjohnson` capture, chosen 2026-09-09.** The `room-niklas` run reconstructs a private bedroom, and the deck is projected to a class and shared as a link. Do not swap it back; the replacement to want is the JetBot's own first capture.
+
+## Prose
+
+Both slop skills are installed and were applied to every visible string on 2026-09-09: `stop-slop` (`.claude/skills/stop-slop/`, its three `references/` fetched from upstream, TF-003) and `no-ai-slop` (`.claude/skills/no-ai-slop/`, imported direct, scanned first — see `.claude/SOURCES.md`). 45 edits. The visible copy carries **no em dashes**; the remaining ones are in code comments. Keep it that way when editing the template.
 
 ## Not this
 

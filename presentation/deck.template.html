@@ -8,11 +8,11 @@
 /* ─── Emergence: light doc palette on bare :root ─────────────────────── */
 :root{
   --ground:#f4f4f7; --raise:#fbfbfd; --ink:#1d1c2a; --muted:#6f6d85;
-  --faint:#9b98ae; --rule:#dedde8; --rule-soft:#e9e8f0;
+  --faint:#74718c; --rule:#dedde8; --rule-soft:#e9e8f0;
   --accent:#5b4bd6; --accent-soft:rgba(91,75,214,.10); --bloom2:#d64b92;
   --ok:#3f9e78; --warn:#d98a2b; --idle:#c3c1d1;
   --shadow:0 1px 2px rgba(29,28,42,.05),0 12px 32px -16px rgba(29,28,42,.22);
-  --step:clamp(15px,1.6vw,17px);
+  --step:clamp(15px,1.6vw,17px); --bloom-a:.17; --bloom-b:.11;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
@@ -21,6 +21,7 @@
     --accent:#8b7bff; --accent-soft:rgba(139,123,255,.14); --bloom2:#f06ba8;
     --ok:#4fc196; --warn:#e0a04a; --idle:#3b3959;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -16px rgba(0,0,0,.7);
+    --bloom-a:.26; --bloom-b:.16;
   }
 }
 :root[data-theme="dark"]{
@@ -29,14 +30,7 @@
   --accent:#8b7bff; --accent-soft:rgba(139,123,255,.14); --bloom2:#f06ba8;
   --ok:#4fc196; --warn:#e0a04a; --idle:#3b3959;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -16px rgba(0,0,0,.7);
-}
-/* deck mode commits to the projector palette in every host theme */
-body.deck{
-  --ground:#100f21; --raise:#191831; --ink:#f0eef8; --muted:#a5a1c4;
-  --faint:#7d799d; --rule:#2c2a49; --rule-soft:#23213c;
-  --accent:#9b8cff; --accent-soft:rgba(155,140,255,.16); --bloom2:#f06ba8;
-  --ok:#5bcfa2; --warn:#e8ab55; --idle:#403d63;
-  --shadow:0 20px 60px -30px rgba(0,0,0,.9);
+  --bloom-a:.26; --bloom-b:.16;
 }
 
 *{box-sizing:border-box;}
@@ -52,9 +46,8 @@ body{
 /* ─── bloom field: the signature, always behind the type ─────────────── */
 .bloom{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
 .bloom b{position:absolute;display:block;border-radius:50%;filter:blur(40px);opacity:.5;}
-.b1{width:52vw;aspect-ratio:1;right:-14vw;top:-18vh;background:radial-gradient(circle,var(--accent) 0%,transparent 66%);opacity:.16;}
-.b2{width:34vw;aspect-ratio:1;left:-10vw;bottom:-14vh;background:radial-gradient(circle,var(--bloom2) 0%,transparent 68%);opacity:.11;}
-body.deck .b1{opacity:.26;} body.deck .b2{opacity:.16;}
+.b1{width:52vw;aspect-ratio:1;right:-14vw;top:-18vh;background:radial-gradient(circle,var(--accent) 0%,transparent 66%);opacity:var(--bloom-a);}
+.b2{width:34vw;aspect-ratio:1;left:-10vw;bottom:-14vh;background:radial-gradient(circle,var(--bloom2) 0%,transparent 68%);opacity:var(--bloom-b);}
 
 /* ─── chrome ─────────────────────────────────────────────────────────── */
 .chrome{
@@ -232,7 +225,10 @@ figcaption{font-size:clamp(11px,.92vw,13px);color:var(--faint);}
 
 /* the sparse cloud COLMAP recovered, rotating behind the opening claim */
 canvas.pcloud{position:absolute;inset:0;width:100%;height:100%;display:block;
-  z-index:0;opacity:.62;pointer-events:none;}
+  z-index:0;opacity:.55;pointer-events:none;
+  -webkit-mask-image:linear-gradient(to right,transparent 30%,#000 64%);
+  mask-image:linear-gradient(to right,transparent 30%,#000 64%);}
+:root[data-theme="dark"] canvas.pcloud{opacity:.7;}
 #s1 .inner{position:relative;z-index:1;}
 body.doc #s1{min-height:460px;display:flex;flex-direction:column;justify-content:center;}
 .cloudnote{position:absolute;z-index:1;right:clamp(20px,4vw,54px);bottom:clamp(16px,3vh,34px);
@@ -248,6 +244,7 @@ body.doc .deckonly{display:none;}
 <div class="bloom" aria-hidden="true"><b class="b1"></b><b class="b2"></b></div>
 
 <div class="chrome">
+  <button class="btn" id="theme" type="button">Dark <kbd>t</kbd></button>
   <button class="btn" id="mode" type="button">Doc view <kbd>d</kbd></button>
 </div>
 <div class="rail" aria-hidden="true"><i id="railfill"></i></div>
@@ -258,11 +255,11 @@ body.doc .deckonly{display:none;}
 <!-- ═══ 1 · thesis ═══ -->
 <section id="s1">
   <canvas class="pcloud" id="pcloud-canvas" aria-hidden="true"></canvas>
-  <div class="cloudnote">6 000 of the 31 086 points COLMAP recovered from this room — the sparse skeleton the dense model is grown from</div>
+  <div class="cloudnote">6 000 of the 31 086 points COLMAP recovered from this room, the sparse skeleton the dense model grows from</div>
   <div class="inner">
     <div class="eyebrow">JetBot 3D Modeling · University robotics project</div>
     <h1>A robot drives through&nbsp;a room.<br>The room appears on the screen beside&nbsp;it.</h1>
-    <p class="lead">Gaussian splatting from a hobby robot, a fanless laptop and six open-source projects. Half of it is built and measured. Half has never met a motor — and this deck says which is which.</p>
+    <p class="lead">Gaussian splatting from a hobby robot, a fanless laptop and six open-source projects. Half of it is built and measured. Half has never met a motor, and this deck says which is which.</p>
     <div class="stats" style="margin-top:.6em">
       <div class="stat"><span class="n mono">380 s</span><span class="l">Photos → model</span></div>
       <div class="stat"><span class="n mono">15.1×</span><span class="l">Compression</span></div>
@@ -280,8 +277,8 @@ body.doc .deckonly{display:none;}
     <div class="grid g4">
       <div class="card"><div class="tag t-idle">01 Drive</div><h3>Stop and go</h3><p>Drive a little, stop, let the chassis settle, take one frame. Repeat. The robot never shoots while moving.</p></div>
       <div class="card"><div class="tag t-idle">02 Fetch</div><h3>One command</h3><p>The Mac pulls the folder off the robot and starts the pipeline in the same breath.</p></div>
-      <div class="card"><div class="tag t-idle">03 Locate</div><h3>Where was the camera?</h3><p>COLMAP recovers a position and orientation for every single frame. This is the step that decides everything.</p></div>
-      <div class="card"><div class="tag t-ok">04 Watch</div><h3>The room assembles</h3><p>Brush optimises a cloud of translucent ellipsoids until it looks like the photos — and you can fly through it while it runs.</p></div>
+      <div class="card"><div class="tag t-idle">03 Locate</div><h3>Where was the camera?</h3><p>COLMAP recovers a position and orientation for every single frame. Every later stage inherits its mistakes.</p></div>
+      <div class="card"><div class="tag t-ok">04 Watch</div><h3>The room assembles</h3><p>Brush optimises a cloud of translucent ellipsoids until it looks like the photos. You can fly through it while it runs.</p></div>
     </div>
     <p class="lead" style="margin-top:.4em">Then a fifth step compresses the result to a fifteenth of its size and writes a viewer you open in a browser. No server needed.</p>
   </div>
@@ -297,16 +294,16 @@ body.doc .deckonly{display:none;}
         <div class="tag t-ok">The 3D model</div>
         <h3>No machine learning at all</h3>
         <p>Despite the word <i>training</i>, nothing learns. Hundreds of thousands of translucent ellipsoids each carry a position, size, orientation, colour and opacity. Render the cloud from a known camera, compare it with the real photo, nudge every ellipsoid towards <i>less difference</i>. Eight thousand times.</p>
-        <p><b>It does nothing in the end. It <i>is</i> the room</b> — and it works in that one room only.</p>
+        <p><b>It does nothing in the end. It <i>is</i> the room</b>, and it works in that one room only.</p>
       </div>
       <div class="card">
         <div class="tag t-warn">The driving model</div>
         <h3>Real machine learning</h3>
         <p>Camera image in, a decision out: free or blocked, chair or table, steer left or right. Trained once, then run many times a second on the robot.</p>
-        <p><b>It generalises</b> — it handles rooms it has never seen, and knows none of them in particular.</p>
+        <p><b>It generalises.</b> It handles rooms it has never seen, and knows none of them in particular.</p>
       </div>
     </div>
-    <p>That is the whole difference. One knows a single room perfectly and nothing else. The other knows no room, but copes anywhere.</p>
+    <p>One knows a single room perfectly and nothing else. The other knows no room, but copes anywhere.</p>
   </div>
 </section>
 
@@ -337,9 +334,9 @@ body.doc .deckonly{display:none;}
 
         <!-- folder: the entire interface -->
         <path d="M300 78 h30 l9 12 h44 a6 6 0 0 1 6 6 v46 a6 6 0 0 1 -6 6 h-83 a6 6 0 0 1 -6 -6 v-58 a6 6 0 0 1 6 -6 z"
-              fill="none" stroke="#5b4bd6" stroke-width="1.8"/>
-        <text x="342" y="120" text-anchor="middle" font-size="11" font-weight="700" fill="#5b4bd6">captures/</text>
-        <text x="342" y="134" text-anchor="middle" font-size="10" fill="#5b4bd6" opacity=".85">frame_0001.jpg …</text>
+              fill="none" stroke="var(--accent)" stroke-width="1.8"/>
+        <text x="342" y="120" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)">captures/</text>
+        <text x="342" y="134" text-anchor="middle" font-size="10" fill="var(--accent)" opacity=".85">frame_0001.jpg …</text>
         <text x="342" y="176" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">the whole interface</text>
 
         <!-- Mac -->
@@ -367,11 +364,11 @@ body.doc .deckonly{display:none;}
         <!-- what never crosses back -->
         <path d="M560 168 C560 200 250 200 160 172" fill="none" stroke="currentColor" stroke-width="1.2"
               stroke-dasharray="4 4" opacity=".3" marker-end="url(#ar)"/>
-        <text x="360" y="212" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".45">no real-time control path — the Mac never steers</text>
+        <text x="360" y="212" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".45">no real-time control path: the Mac never steers</text>
 
         <text x="18" y="248" font-size="11" fill="currentColor" opacity=".55">Boundary is latency, not compute power. The Lenovo is slower than the Mac at every task here, so it computes nothing.</text>
       </svg>
-      <figcaption>The robot keeps only what must answer within ~100 ms. Everything else crosses to the Mac as a folder of numbered JPEGs — no protocol, no network API, no shared library.</figcaption>
+      <figcaption>The robot keeps only what must answer within ~100 ms. Everything else crosses to the Mac as a folder of numbered JPEGs, and that folder is the entire interface.</figcaption>
     </figure>
     <div class="scroller"><table>
       <tr><th>Machine</th><th>Does</th><th>Explicitly does not</th></tr>
@@ -391,12 +388,12 @@ body.doc .deckonly{display:none;}
     <div class="pdetail" id="pdetail"></div>
     <div class="grid g2" style="margin-top:.2em">
       <div class="shotwrap">
-        <img class="shot" src="__IMG_F6320__" alt="A fireplace, two chairs and a patterned rug — a scene dense with texture.">
+        <img class="shot" src="__IMG_F6320__" alt="A fireplace, two chairs and a patterned rug, a scene dense with texture.">
         <div class="shotcap"><b>What pose estimation loves.</b> Carpet pattern, wood grain, sharp edges: thousands of points it can match between frames.</div>
       </div>
       <div class="shotwrap">
         <img class="shot" src="__IMG_F6440__" alt="A plain white ceiling above a picture rail, almost free of texture.">
-        <div class="shotcap"><b>What breaks it.</b> A white ceiling has nothing to match. It fails here without an error message — you get plausible but wrong positions, and only notice in the smeared result.</div>
+        <div class="shotcap"><b>What breaks it.</b> A white ceiling has nothing to match. It fails here without an error message. You get plausible but wrong positions and notice only in the smeared result.</div>
       </div>
     </div>
   </div>
@@ -418,10 +415,10 @@ body.doc .deckonly{display:none;}
           <tr><td>Overlap wanted</td><td><b class="mono">70–80 %</b> between neighbours</td></tr>
           <tr><td>JPEG quality</td><td><b class="mono">92</b></td></tr>
         </table></div>
-        <p class="hint">Every one of these is a default in <code>capture.py</code> that a first real drive is expected to move.</p>
+        <p class="hint">A first real drive will move every one of these defaults in <code>capture.py</code>.</p>
       </div>
       <div class="scrub">
-        <h3>On the Mac — quality against training steps</h3>
+        <h3>On the Mac: quality against training steps</h3>
         <svg class="curve" viewBox="0 0 860 250" role="img" aria-label="Quality rises steeply to step 4000 and then flattens: 21.5 dB at 1000 steps, 24.3 at 4000, 25.1 at 8000.">
           <line x1="60" y1="210" x2="830" y2="210" stroke="currentColor" stroke-width="1" opacity=".3"/>
           <line x1="60" y1="40"  x2="60"  y2="210" stroke="currentColor" stroke-width="1" opacity=".3"/>
@@ -433,20 +430,20 @@ body.doc .deckonly{display:none;}
           <text x="386" y="230" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".55">4000</text>
           <text x="820" y="230" text-anchor="end" font-size="10.5" fill="currentColor" opacity=".55">8000 steps</text>
 
-          <line x1="386" y1="50" x2="386" y2="210" stroke="#d64b92" stroke-width="1" stroke-dasharray="3 4" opacity=".7"/>
-          <text x="394" y="60" font-size="10.5" fill="#d64b92">97 % of final quality, 36 % of the time</text>
+          <line x1="386" y1="50" x2="386" y2="210" stroke="var(--bloom2)" stroke-width="1" stroke-dasharray="3 4" opacity=".7"/>
+          <text x="394" y="60" font-size="10.5" fill="var(--bloom2)">97 % of final quality, 36 % of the time</text>
 
-          <polyline fill="none" stroke="#5b4bd6" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
+          <polyline fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
             points="60,191 169,136 277,103 386,89 494,77 603,72 711,66 820,61"/>
-          <circle cx="60"  cy="191" r="3" fill="#5b4bd6"/>
-          <circle cx="169" cy="136" r="3" fill="#5b4bd6"/>
-          <circle cx="277" cy="103" r="3" fill="#5b4bd6"/>
-          <circle cx="386" cy="89"  r="3" fill="#5b4bd6"/>
-          <circle cx="494" cy="77"  r="3" fill="#5b4bd6"/>
-          <circle cx="603" cy="72"  r="3" fill="#5b4bd6"/>
-          <circle cx="711" cy="66"  r="3" fill="#5b4bd6"/>
-          <circle cx="820" cy="61"  r="3" fill="#5b4bd6"/>
-          <circle id="curve-marker" cx="386" cy="89" r="7" fill="none" stroke="#d64b92" stroke-width="2.5"/>
+          <circle cx="60"  cy="191" r="3" fill="var(--accent)"/>
+          <circle cx="169" cy="136" r="3" fill="var(--accent)"/>
+          <circle cx="277" cy="103" r="3" fill="var(--accent)"/>
+          <circle cx="386" cy="89"  r="3" fill="var(--accent)"/>
+          <circle cx="494" cy="77"  r="3" fill="var(--accent)"/>
+          <circle cx="603" cy="72"  r="3" fill="var(--accent)"/>
+          <circle cx="711" cy="66"  r="3" fill="var(--accent)"/>
+          <circle cx="820" cy="61"  r="3" fill="var(--accent)"/>
+          <circle id="curve-marker" cx="386" cy="89" r="7" fill="none" stroke="var(--bloom2)" stroke-width="2.5"/>
         </svg>
         <input type="range" id="steps" min="0" max="7" value="3" step="1" aria-label="Training steps">
         <div class="scrubgrid">
@@ -475,7 +472,7 @@ body.doc .deckonly{display:none;}
     <div class="grid g3">
       <div class="card">
         <h3>Brush</h3>
-        <p><b>Trains the 3D model.</b> Gaussian splatting on Apple Silicon through WGPU/Metal — the reason this runs without an NVIDIA card. Its live viewer is what makes the training watchable.</p>
+        <p><b>Trains the 3D model.</b> Gaussian splatting on Apple Silicon through WGPU/Metal, which is why this runs without an NVIDIA card. Its live viewer makes the training watchable.</p>
         <p class="hint">ArthurBrussee/brush · Apache-2.0 · 5.0k ★</p>
       </div>
       <div class="card">
@@ -485,7 +482,7 @@ body.doc .deckonly{display:none;}
       </div>
       <div class="card">
         <h3>SuperSplat</h3>
-        <p><b>Ships the result.</b> Compresses <code>.ply</code> to <code>.sog</code> and writes a self-contained viewer — the one embedded at the end of this deck.</p>
+        <p><b>Ships the result.</b> Compresses <code>.ply</code> to <code>.sog</code> and writes a self-contained viewer, the one embedded at the end of this deck.</p>
         <p class="hint">playcanvas/supersplat · MIT · 9.9k ★</p>
       </div>
       <div class="card">
@@ -501,7 +498,7 @@ body.doc .deckonly{display:none;}
       </div>
       <div class="card">
         <h3>nerf_bridge</h3>
-        <p><b>Lent us two ideas</b>, not code: reject a soft frame by Laplacian variance, and stop when consecutive frames stop changing — which is what a robot stuck against furniture produces.</p>
+        <p><b>Lent us two ideas</b>, not code: reject a soft frame by Laplacian variance, and stop when consecutive frames stop changing, which is what a robot stuck against furniture produces.</p>
         <p class="hint">javieryu/nerf_bridge · borrowed approach</p>
       </div>
     </div>
@@ -516,12 +513,12 @@ body.doc .deckonly{display:none;}
     <div class="scroller"><table>
       <tr><th></th><th>repos/pipeline-3d</th><th>repos/robot</th></tr>
       <tr><td>Runs on</td><td><b>MacBook M4, macOS</b></td><td><b>JetBot, Ubuntu 18.04</b></td></tr>
-      <tr><td>Language</td><td>Python 3.14 / Shell</td><td><b>Python 3.6</b> — no walrus, no dataclasses</td></tr>
+      <tr><td>Language</td><td>Python 3.14 / Shell</td><td><b>Python 3.6</b>, so no walrus and no dataclasses</td></tr>
       <tr><td>Tools</td><td>COLMAP, Brush, splat-transform</td><td>JetBot 0.4.3, jetson-inference</td></tr>
       <tr><td>Delivers</td><td>the model and the viewer</td><td>images, control, detections</td></tr>
       <tr><td>Demo on its own</td><td>a model growing in the live viewer</td><td>a driving robot with live detection</td></tr>
     </table></div>
-    <p><b>The interface is deliberately dumb:</b> a folder of numbered JPEGs, plus one file of detections per image. No protocol, no shared library. Each side stays runnable and repairable without the other — which is also why each side is its own demo when the other one breaks.</p>
+    <p><b>The interface is deliberately dumb:</b> a folder of numbered JPEGs, plus one file of detections per image. No protocol, no shared library. Each side stays runnable and repairable without the other, which is also why each side is its own demo when the other one breaks.</p>
   </div>
 </section>
 
@@ -537,7 +534,7 @@ body.doc .deckonly{display:none;}
             <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
           </marker>
           <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#5b4bd6"/>
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
           </marker>
         </defs>
 
@@ -548,7 +545,7 @@ body.doc .deckonly{display:none;}
         <circle cx="150" cy="98" r="11" fill="none" stroke="currentColor" stroke-width="1.6"/>
         <path d="M150 62 A36 36 0 1 1 118 116" fill="none" stroke="currentColor" stroke-width="1.5"
               stroke-dasharray="4 4" marker-end="url(#ar2)" opacity=".75"/>
-        <text x="150" y="186" text-anchor="middle" font-size="11.5" fill="#d64b92" font-weight="700">no parallax</text>
+        <text x="150" y="186" text-anchor="middle" font-size="11.5" fill="var(--bloom2)" font-weight="700">no parallax</text>
 
         <!-- ─ panel 2: drive at the wall ─ -->
         <text x="315" y="20" font-size="12" font-weight="700" fill="currentColor">Drive at the wall</text>
@@ -556,28 +553,28 @@ body.doc .deckonly{display:none;}
         <circle cx="360" cy="98" r="11" fill="none" stroke="currentColor" stroke-width="1.6"/>
         <circle cx="450" cy="98" r="11" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".45"/>
         <line x1="378" y1="98" x2="565" y2="98" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)" opacity=".75"/>
-        <line x1="360" y1="98" x2="578" y2="98" stroke="#d64b92" stroke-width="1" stroke-dasharray="2 3" opacity=".8"/>
-        <text x="470" y="88" text-anchor="middle" font-size="10" fill="#d64b92">displacement is zero at the centre</text>
-        <text x="450" y="186" text-anchor="middle" font-size="11.5" fill="#d64b92" font-weight="700">no parallax where you are aiming</text>
+        <line x1="360" y1="98" x2="578" y2="98" stroke="var(--bloom2)" stroke-width="1" stroke-dasharray="2 3" opacity=".8"/>
+        <text x="470" y="88" text-anchor="middle" font-size="10" fill="var(--bloom2)">displacement is zero at the centre</text>
+        <text x="450" y="186" text-anchor="middle" font-size="11.5" fill="var(--bloom2)" font-weight="700">no parallax where you are aiming</text>
 
         <!-- ─ panel 3: pass it sideways ─ -->
         <text x="655" y="20" font-size="12" font-weight="700" fill="currentColor">Pass it sideways</text>
         <line x1="655" y1="46" x2="890" y2="46" stroke="currentColor" stroke-width="4" opacity=".35"/>
-        <circle cx="690" cy="120" r="11" fill="none" stroke="#5b4bd6" stroke-width="1.8"/>
-        <circle cx="850" cy="120" r="11" fill="none" stroke="#5b4bd6" stroke-width="1.8"/>
-        <line x1="708" y1="120" x2="832" y2="120" stroke="#5b4bd6" stroke-width="1.5" marker-end="url(#ar3)"/>
-        <line x1="690" y1="109" x2="770" y2="52" stroke="#5b4bd6" stroke-width="1" stroke-dasharray="2 3" opacity=".8"/>
-        <line x1="850" y1="109" x2="770" y2="52" stroke="#5b4bd6" stroke-width="1" stroke-dasharray="2 3" opacity=".8"/>
-        <circle cx="770" cy="52" r="3.5" fill="#5b4bd6"/>
-        <text x="770" y="150" text-anchor="middle" font-size="10" fill="#5b4bd6" opacity=".85">same point, two directions</text>
-        <text x="770" y="186" text-anchor="middle" font-size="11.5" fill="#5b4bd6" font-weight="700">parallax</text>
+        <circle cx="690" cy="120" r="11" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
+        <circle cx="850" cy="120" r="11" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
+        <line x1="708" y1="120" x2="832" y2="120" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ar3)"/>
+        <line x1="690" y1="109" x2="770" y2="52" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 3" opacity=".8"/>
+        <line x1="850" y1="109" x2="770" y2="52" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 3" opacity=".8"/>
+        <circle cx="770" cy="52" r="3.5" fill="var(--accent)"/>
+        <text x="770" y="150" text-anchor="middle" font-size="10" fill="var(--accent)" opacity=".85">same point, two directions</text>
+        <text x="770" y="186" text-anchor="middle" font-size="11.5" fill="var(--accent)" font-weight="700">parallax</text>
       </svg>
-      <figcaption>Reconstruction needs <b>parallax</b> — the same surface seen from meaningfully different positions. Two of the three motions a simple obstacle-avoider produces have none.</figcaption>
+      <figcaption>Reconstruction needs <b>parallax</b>, meaning the same surface seen from meaningfully different positions. Two of the three motions a simple obstacle-avoider produces have none.</figcaption>
     </figure>
     <div class="grid g3">
-      <div class="card"><h3>Spin on the spot</h3><p>Plenty of overlap, no triangulation. The camera sits ahead of the wheel axis, so a spin traces a small circle rather than turning about the lens — an offset nobody has measured yet.</p></div>
+      <div class="card"><h3>Spin on the spot</h3><p>Plenty of overlap, no triangulation. The camera sits ahead of the wheel axis, so a spin traces a small circle rather than turning about the lens. Nobody has measured that offset.</p></div>
       <div class="card"><h3>Drive at the wall</h3><p>The expansion point sits at the image centre, where displacement is zero. The 160° fisheye still earns parallax at the edges, which is why wide lenses tolerate forward motion at all.</p></div>
-      <div class="card"><h3>Pass the wall sideways</h3><p><b>This is the one that works.</b> A closed loop parallel to the walls, driven twice at different distances, so the same surface is seen from two depths.</p></div>
+      <div class="card"><h3>Pass the wall sideways</h3><p><b>This is the one that works.</b> A closed loop parallel to the walls, driven twice at different distances, so the same surface appears from two depths.</p></div>
     </div>
   </div>
 </section>
@@ -597,22 +594,22 @@ body.doc .deckonly{display:none;}
       <div class="card">
         <span class="tag t-idle">Planned</span>
         <h3>Trained steering</h3>
-        <p>A ResNet-18 regression head, labelled one click per frame, trained on the Nano itself. It replaces the weakest primitive — the long wall pass, where an open loop drifts.</p>
+        <p>A ResNet-18 regression head, labelled one click per frame, trained on the Nano itself. It replaces the weakest primitive, the long wall pass, where an open loop drifts.</p>
         <p class="hint">Only if packages 1–3 show the drift is actually bad</p>
       </div>
       <div class="card">
         <span class="tag t-idle">Idea</span>
         <h3>Drive to the holes</h3>
-        <p>The half-built model knows where it is thin. Send the robot to the viewpoints that would fix it. This is where both halves of the project finally interlock.</p>
+        <p>The half-built model knows where it is thin. Send the robot to the viewpoints that would fix it. Here both halves of the project interlock.</p>
         <p class="hint">Needs a pose the robot does not have</p>
       </div>
       <div class="card" style="border-style:dashed;border-color:var(--accent)">
         <span class="tag" style="color:var(--accent)">Open</span>
         <h3 style="font-size:clamp(30px,3.4vw,46px);color:var(--accent);line-height:1">?</h3>
-        <p>This slot is deliberately empty. The hardware has <b>no encoders, no IMU and no map</b>, so anything that assumes odometry is out — and that still leaves room. Suggestions welcome.</p>
+        <p>This slot is deliberately empty. The hardware has <b>no encoders, no IMU and no map</b>, so anything that assumes odometry is out. That still leaves room. Tell us what you would try.</p>
       </div>
     </div>
-    <p class="hint">Ruled out on purpose: the classic trained obstacle-avoider. It learns to drive straight until blocked, then rotate — which is both degeneracies from the previous slide, in one network.</p>
+    <p class="hint">Ruled out on purpose: the classic trained obstacle-avoider. It learns to drive straight until blocked, then rotate, which is both degeneracies from the previous slide in one network.</p>
   </div>
 </section>
 
@@ -637,11 +634,11 @@ body.doc .deckonly{display:none;}
     <div class="eyebrow">What happens next</div>
     <h2>One physical act blocks the entire right-hand column</h2>
     <div class="grid g3">
-      <div class="card"><span class="tag t-warn">Next</span><h3>Boot the robot</h3><p>First boot, join the Wi-Fi, reach Jupyter. Nobody can do this over SSH — it is a person in a room with a power switch.</p></div>
+      <div class="card"><span class="tag t-warn">Next</span><h3>Boot the robot</h3><p>First boot, join the Wi-Fi, reach Jupyter. Nobody can do this over SSH. It is a person in a room with a power switch.</p></div>
       <div class="card"><span class="tag t-warn">Then</span><h3>Run <code>checkup.py</code></h3><p>It answers the two questions that block everything: does the camera really deliver 1280 × 960, and does the SD card keep up? Every JetBot notebook builds the camera at 224 × 224.</p></div>
-      <div class="card"><span class="tag t-idle">Then</span><h3>One real drive</h3><p>A corner of a room, handed to the pipeline. That is the proof the two halves fit — and the first frames our own camera has ever produced.</p></div>
+      <div class="card"><span class="tag t-idle">Then</span><h3>One real drive</h3><p>A corner of a room, handed to the pipeline. That is the proof the two halves fit, and the first frames our own camera has ever produced.</p></div>
     </div>
-    <p><b>Nothing in the pipeline half waits on any of this.</b> That was the point of splitting them: the Mac side was built, measured and finished while the robot sat in its box.</p>
+    <p><b>Nothing in the pipeline half waits on any of this.</b> That was the point of splitting them. We built, measured and finished the Mac side while the robot sat in its box.</p>
   </div>
 </section>
 
@@ -649,9 +646,9 @@ body.doc .deckonly{display:none;}
 <section id="s13">
   <div class="inner">
     <div class="eyebrow">Vision</div>
-    <span class="tag t-vision">Not built — this is where we want to go</span>
+    <span class="tag t-vision">Not built: this is where we want to go</span>
     <h2>A drive that publishes itself</h2>
-    <p class="lead">Park the robot, and the run finishes on its own: fetch, poses, training, compression, upload. Some minutes later a link exists, and the room is on every phone in the room. No command in between.</p>
+    <p class="lead">Park the robot and the run finishes by itself: fetch, poses, training, compression, upload. A few minutes later there is a link, and the reconstruction opens on every phone in the lecture hall. Nobody types a command in between.</p>
     <div class="grid g3">
       <div class="card"><h3>Why it is not there yet</h3><p>The Lenovo rollout is postponed on purpose. It changes the address the viewer lives at and nothing else, so it was the cheapest thing to defer.</p></div>
       <div class="card"><h3>The real constraint</h3><p>Uploading 6.8 MB over ~9 Mbit/s takes about six seconds. The problem is the other direction: a whole lecture hall loading it at once.</p></div>
@@ -674,7 +671,7 @@ body.doc .deckonly{display:none;}
         </div>
       </div>
     </div>
-    <p class="foot">Reconstructed with this project's own pipeline from the public <b>Deep Blending</b> <i>Dr Johnson</i> capture (Hedman et al., 2018) — 263 of 263 images registered, then trained, filtered and compressed here. The JetBot's own frames do not exist yet; when they do, this is the slide that changes.</p>
+    <p class="foot">Reconstructed with this project's own pipeline from the public <b>Deep Blending</b> <i>Dr Johnson</i> capture (Hedman et al., 2018). All 263 images registered, then trained, filtered and compressed here. The JetBot's own frames do not exist yet. When they do, this slide changes.</p>
   </div>
 </section>
 
@@ -689,6 +686,23 @@ body.doc .deckonly{display:none;}
   var body=document.body, deck=document.getElementById('deck');
   var secs=Array.prototype.slice.call(document.querySelectorAll('#deck section'));
   var idx=0;
+
+  /* ── theme ────────────────────────────────────────────────────────── */
+  /* Light is the deliberate default in every mode and on any host theme:
+     it is the direction that was chosen. Dark stays one keypress away for a
+     hall where a pale ground washes out. */
+  var themeBtn=document.getElementById('theme');
+  function setTheme(t){
+    document.documentElement.setAttribute('data-theme',t);
+    themeBtn.innerHTML=(t==='light'?'Dark':'Light')+' <kbd>t</kbd>';
+    try{ localStorage.setItem('deck-theme',t); }catch(e){}
+  }
+  var savedTheme=null;
+  try{ savedTheme=localStorage.getItem('deck-theme'); }catch(e){}
+  setTheme(savedTheme==='dark'?'dark':'light');
+  themeBtn.addEventListener('click',function(){
+    setTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
+  });
 
   /* ── mode ─────────────────────────────────────────────────────────── */
   var modeBtn=document.getElementById('mode');
@@ -719,14 +733,24 @@ body.doc .deckonly{display:none;}
     dotEls.forEach(function(d,i){ d.classList.toggle('on', i===idx); });
     rail.style.width = ((idx)/(secs.length-1)*100)+'%';
   }
+  /* A programmatic scroll fires scroll events all the way to its target. Without
+     this lock the listener below reads the half-finished position, resets idx to
+     the slide we are leaving, and the next keypress goes nowhere. */
+  var lockUntil=0;
   function go(i){
     idx=Math.max(0,Math.min(secs.length-1,i));
-    if(body.classList.contains('deck')) deck.scrollTo({top:idx*deck.clientHeight,behavior:'smooth'});
+    lockUntil=Date.now()+400;
+    /* Deck slides jump, they do not glide: a smooth scroll inside a
+       scroll-snap:mandatory container is cancelled by the snap the moment it
+       starts, and a slide change should be instant in front of an audience
+       anyway. Doc mode has no snap, so it keeps the smooth scroll. */
+    if(body.classList.contains('deck')) deck.scrollTop=idx*deck.clientHeight;
     else secs[idx].scrollIntoView({behavior:'smooth',block:'start'});
     paint();
   }
   deck.addEventListener('scroll',function(){
     if(!body.classList.contains('deck')) return;
+    if(Date.now()<lockUntil) return;
     var n=Math.round(deck.scrollTop/deck.clientHeight);
     if(n!==idx && n>=0 && n<secs.length){ idx=n; paint(); }
   },{passive:true});
@@ -735,6 +759,9 @@ body.doc .deckonly{display:none;}
     var t=e.target.tagName;
     if(t==='INPUT'||t==='TEXTAREA') return;
     if(e.key==='d'||e.key==='D'){ setMode(body.classList.contains('deck')?'doc':'deck'); return; }
+    if(e.key==='t'||e.key==='T'){
+      setTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'); return;
+    }
     if(!body.classList.contains('deck')) return;
     if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '||e.key==='PageDown'){ e.preventDefault(); go(idx+1); }
     else if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){ e.preventDefault(); go(idx-1); }
@@ -745,11 +772,11 @@ body.doc .deckonly{display:none;}
 
   /* ── S5 pipeline ──────────────────────────────────────────────────── */
   var STAGES=[
-    {n:'Images',      t:'input',  risk:false, d:'<b>251 frames, numbered in drive order.</b> The numbering is the interface: it tells the matcher which frames are neighbours, which is why a skipped frame costs more than a soft one.'},
-    {n:'Poses',       t:'99 s',   risk:true,  d:'<b>The single point of failure.</b> COLMAP recovers where each camera was. On a good scene it registers 263 of 263; on a thin one it shattered the same scene into 8 fragments and the run was aborted at the gate. Wrong poses are baked into the model as blur, and nothing downstream can undo them.'},
-    {n:'Training',    t:'254 s',  risk:false, d:'<b>Brush optimises the splat cloud</b> against the photos, on the Mac’s GPU through Metal. 64 s of CPU time against 974 s of wall clock on the reference run — the CPU only feeds the GPU. You can fly through the half-finished room while it runs.'},
-    {n:'Compression', t:'27 s',   risk:false, d:'<b>288 MB of <code>.ply</code> becomes 19 MB of <code>.sog</code></b> — factor 15.1, confirmed on two runs. The same tool writes a self-contained HTML viewer with the model inlined.'},
-    {n:'Viewer',      t:'0 s',    risk:false, d:'<b>One file, opened in a browser.</b> No server, no container, no build. Hosting only matters for the link you hand out afterwards.'}
+    {n:'Images',      t:'input',  risk:false, d:'<b>251 frames, numbered in drive order.</b> The numbering is the interface. It tells the matcher which frames are neighbours, which is why a skipped frame costs more than a soft one.'},
+    {n:'Poses',       t:'99 s',   risk:true,  d:'<b>The single point of failure.</b> COLMAP recovers where each camera was. On a good scene it registers 263 of 263; on a thin one it shattered the same scene into 8 fragments and the pipeline aborted the run at the gate. Wrong poses bake into the model as blur, and nothing downstream undoes them.'},
+    {n:'Training',    t:'254 s',  risk:false, d:'<b>Brush optimises the splat cloud</b> against the photos, on the Mac’s GPU through Metal. On the reference run it spent 64 s of CPU time against 974 s of wall clock, because the CPU only feeds the GPU. You can fly through the half-finished room while it runs.'},
+    {n:'Compression', t:'27 s',   risk:false, d:'<b>288 MB of <code>.ply</code> becomes 19 MB of <code>.sog</code></b>, a factor of 15.1 confirmed on two runs. The same tool writes a self-contained HTML viewer with the model inlined.'},
+    {n:'Viewer',      t:'0 s',    risk:false, d:'<b>One file, opened in a browser.</b> It needs no server and no build step. Hosting only matters for the link you hand out afterwards.'}
   ];
   var pipe=document.getElementById('pipe'), pdet=document.getElementById('pdetail'), pbtns=[];
   STAGES.forEach(function(s,i){
@@ -786,29 +813,29 @@ body.doc .deckonly{display:none;}
     }
     vn.innerHTML = (+rng.value<=3)
       ? '<b>Step 4000 reaches 97 % of the final quality in 36 % of the time.</b> This is where a demo run should stop.'
-      : '<b>The second half costs half the wall clock and buys 0.46 dB.</b> The model never consolidates — it grows until the last iteration.';
+      : '<b>The second half costs half the wall clock and buys 0.46 dB.</b> The model never consolidates. It grows until the last iteration.';
   }
   rng.addEventListener('input',scrub); scrub();
 
   /* ── S11 status board ─────────────────────────────────────────────── */
   var BRANCHES=[
     {name:'pipeline-3d', sub:'the Mac half', pkgs:[
-      ['ok','Tools executable — COLMAP, Brush built from source, splat-transform'],
+      ['ok','Tools executable: COLMAP, Brush built from source, splat-transform'],
       ['ok','Reference run on a public dataset, with real numbers'],
-      ['ok','COLMAP pipeline — 251 of 251 registered, undistorted output'],
+      ['ok','COLMAP pipeline: 251 of 251 registered, undistorted output'],
       ['ok','Chained into one command, three resumable stages'],
-      ['ok','Compressed and displayed — navigable in a browser'],
-      ['idle','Someone else repeats it from the README alone — a human act, not one this side can declare']
+      ['ok','Compressed and displayed: navigable in a browser'],
+      ['idle','Someone else repeats it from the README alone, which is a human act this side cannot declare']
     ]},
     {name:'robot', sub:'the JetBot half', pkgs:[
-      ['warn','Boot, Wi-Fi, Jupyter in the browser — blocked, needs a person at the device'],
+      ['warn','Boot, Wi-Fi, Jupyter in the browser. Blocked: needs a person at the device'],
       ['warn','Control and live image from the shipped notebooks'],
-      ['warn','Capture script — written, never executed on hardware or otherwise'],
-      ['idle','Transfer to the Mac — script written, never run against a real robot'],
+      ['warn','Capture script: written, never executed on hardware or otherwise'],
+      ['idle','Transfer to the Mac: script written, never run against a real robot'],
       ['idle','A real capture drive, handed to the pipeline']
     ]},
     {name:'driving', sub:'the expansion', pkgs:[
-      ['warn','Manoeuvre library — built and verified against a stand-in robot, never a motor'],
+      ['warn','Manoeuvre library: built and verified against a stand-in robot, never a motor'],
       ['idle','Step size measured against the undistorted field of view'],
       ['idle','A whole room by manoeuvres, against a hand-driven baseline'],
       ['idle','Label wall-following data'],
@@ -851,7 +878,7 @@ body.doc .deckonly{display:none;}
       var w=Math.max(1,pcEl.clientWidth)*2, h=Math.max(1,pcEl.clientHeight)*2;
       if(pcEl.width!==w||pcEl.height!==h){ pcEl.width=w; pcEl.height=h; }
       ctx.clearRect(0,0,w,h);
-      var ca=Math.cos(ang), sa=Math.sin(ang), sc=Math.min(w,h)*0.42, cx=w/2, cy=h/2;
+      var ca=Math.cos(ang), sa=Math.sin(ang), sc=Math.min(w,h)*0.42, cx=w*0.72, cy=h*0.46;
       for(var i=0;i<PTS.length;i++){
         var p=PTS[i], x=p[0]*ca-p[2]*sa, z=p[0]*sa+p[2]*ca, y=p[1];
         var d=2.0/(2.6+z), sx=cx+x*sc*d, sy=cy+y*sc*d;
