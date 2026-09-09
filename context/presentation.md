@@ -45,6 +45,8 @@ Rebuilt 2026-09-09 from 14 to 11 on the human's review. The three that went: *Ho
 
 **Section 7 carries the weight.** It is the part the group works on next, so the trained-model option names its requirements in full — labelled frames, ResNet-18 trained on the device, camera-only input, the beat-the-mean bar, exclusive time on shared hardware — instead of standing as one line beside the others. Section 8 exists only to give those three options a shared measuring stick, which is why it was cut from a full slide down to one figure and one paragraph.
 
+**One slide, one run.** Caught by an audit on 2026-09-09, after the rebuild introduced it: section 5's stage bar carries the 380 s end-to-end run (99 / 254 / 27 s, `fast` preset on 251 photos) while two of its detail panels quoted the 8000-step reference run on the same photos (974 s on the clock, 288 MB → 19 MB at 15.1×). Every figure traced to context/measurements.md, and together they were nonsense: 974 s cannot describe a 254 s stage, and the compression that actually ran there is 58 MB → 6.8 MB, a factor of 8.5. The details now come from the run the bar's widths are drawn from, and the one figure still borrowed from the longer run says so on the slide. **A figure is only measured if it comes from the same run as the figure beside it.**
+
 **Every number on a slide states what it is a number of.** Settled 2026-09-09 after a bare `380 s` and a bare `15.1×` reached the human and meant nothing to him. A figure carries a label a stranger can read, or it comes off the slide.
 
 ## Visual direction — Emergence
@@ -75,7 +77,7 @@ Anything beyond this list is decoration a projector cannot use.
 
 **No still of our own finished model, and this was tried.** Four camera positions in the viewer on 2026-09-09, every one of them fog: `context/measurements.md` already records that indoor runs come out hazy and that the viewer's opening camera sits inside the haze. A person can move past it in the live viewer on section 11, which is the honest way to show this model. A still would sell it under value.
 
-**The point cloud is the opening image.** COLMAP recovered **81 051** points in the reference run; the deck draws 24 000 of them, rotating, to the right of the headline. Two corrections on 2026-09-09: an earlier build drew 6 000 and captioned them `31 086`, a number with no source anywhere in the repo; and the cloud carried the same 14.3° lean as the viewer. `presentation/pointcloud.py` now writes it, gravity rotation included, from the same `gravity.mjs` the viewer recipe uses.
+**The point cloud is the opening image.** COLMAP recovered **81 051** points in this run, read straight out of `runs/drjohnson/undistorted/sparse/points3D.bin`. context/measurements.md's benchmark table records 81 175 for the same dataset from a standalone invocation, 0.15 % apart; nobody has chased the difference and the deck quotes the file it actually draws. the deck draws 24 000 of them, rotating, to the right of the headline. Two corrections on 2026-09-09: an earlier build drew 6 000 and captioned them `31 086`, a number with no source anywhere in the repo; and the cloud carried the same 14.3° lean as the viewer. `presentation/pointcloud.py` now writes it, gravity rotation included, from the same `gravity.mjs` the viewer recipe uses.
 
 **Foreign material carries a licence line** — project · licence · link — on the same card. Brush Apache-2.0, COLMAP BSD, SuperSplat / jetson-inference / JetBot MIT all permit redistribution with attribution.
 

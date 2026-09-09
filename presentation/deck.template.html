@@ -492,11 +492,11 @@ body.doc .deckonly{display:none;}
         <div class="scroller"><table>
           <tr><td>Photo size</td><td><b class="mono">1280 × 960</b>, cut down from a 1640 × 1232 sensor</td></tr>
           <tr><td>Pause before each photo</td><td><b class="mono">0.7 s</b>, plus two frames thrown away</td></tr>
-          <tr><td>One photo roughly every</td><td><b class="mono">1.2 s</b></td></tr>
+          <tr><td>Driving time per step</td><td><b class="mono">0.30 s</b></td></tr>
           <tr><td>Photos per figure driven</td><td><b class="mono">8 to 12</b></td></tr>
           <tr><td>Two neighbouring photos share</td><td><b class="mono">70 to 80 %</b> of their view</td></tr>
         </table></div>
-        <p class="hint">These are the numbers written into the capture script. Not one of them has met a motor, and a first real drive will move all of them.</p>
+        <p class="hint">These are the capture script's defaults, which come to roughly one photo a second before the camera and the memory card have their say. Not one of them has met a motor, and a first real drive will move all of them.</p>
       </div>
       <div class="lanejoin" aria-hidden="true"></div>
       <div class="lane mc">
@@ -509,7 +509,7 @@ body.doc .deckonly{display:none;}
           <text x="36"  y="146" font-size="11" fill="currentColor" opacity=".6">50 s</text>
           <text x="201" y="146" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">6 min</text>
           <text x="426" y="146" text-anchor="end" font-size="11" fill="currentColor" opacity=".6">16 min</text>
-          <text x="36"  y="166" font-size="11" fill="currentColor" opacity=".5">time spent building the model</text>
+          <text x="36"  y="166" font-size="11" fill="currentColor" opacity=".5">time building the model, the same photos trained four times longer</text>
 
           <line x1="201" y1="30" x2="201" y2="128" stroke="var(--bloom2)" stroke-width="1" stroke-dasharray="3 4" opacity=".8"/>
           <polyline fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"
@@ -525,7 +525,7 @@ body.doc .deckonly{display:none;}
           <text x="212" y="86"  font-size="12" font-weight="700" fill="var(--bloom2)">97 % of the quality,</text>
           <text x="212" y="101" font-size="12" font-weight="700" fill="var(--bloom2)">a third of the time</text>
         </svg>
-        <p class="hint"><b>The second half of a training run costs half the wall clock and buys almost nothing.</b> So a demo run stops early on purpose. Measured on 251 photos, twice, agreeing to 1.2 %.</p>
+        <p class="hint"><b>The second half of a training run costs half the clock and buys almost nothing.</b> That is why a run stops early on purpose, and why the 254 seconds on the bar above are enough. Measured twice on the same photos, agreeing to 1.2 %.</p>
       </div>
     </div>
   </div>
@@ -569,7 +569,7 @@ body.doc .deckonly{display:none;}
           <li>A few hundred photos labelled by hand, one click each: where should it have steered?</li>
           <li>A small network, ResNet&#8209;18, trained on the robot. Its 2019 software stack is already there, so nothing has to be moved.</li>
           <li>Hours of exclusive time on a robot that other projects share.</li>
-          <li>A bar an untrained network fails: beat simply always steering the average.</li>
+          <li>A test it can actually fail: steer better than a network that always answers with the average.</li>
         </ul>
       </div>
       <div class="card" style="border-style:dashed;border-color:var(--accent)">
@@ -867,9 +867,9 @@ body.doc .deckonly{display:none;}
     {n:'Locating',    t:'99 s',  s:99,  risk:true,
      d:'<b>This one decides whether any of it works.</b> The software works out where the camera stood for each photo, by finding the same corners and textures in photos taken next to each other. It needs texture: a carpet or a bookshelf gives it thousands of points, a white wall gives it none. <b>When it fails it usually does so quietly</b>, handing back positions that look plausible and are wrong, and the mistake only shows up as smear in the finished model.'},
     {n:'Building',    t:'254 s', s:254, risk:false,
-     d:'<b>The model assembles itself against the photos</b>, on the Mac’s graphics chip. You can fly through the half‑finished room while it runs, which is the part worth watching. The processor is almost idle here: 64 seconds of its time against 974 seconds on the clock, because it only feeds the graphics chip.'},
+     d:'<b>The model assembles itself against the photos</b>, on the Mac’s graphics chip, and ends at 400 000 blobs in a 58 MB file. You can fly through the half‑finished room while it runs, which is the part worth watching. The processor barely works: on a longer run of the same photos it spent 64 seconds against 974 seconds on the clock, because its only job is feeding the graphics chip.'},
     {n:'Shrinking',   t:'27 s',  s:27,  risk:false,
-     d:'<b>288 MB becomes 19 MB</b>, a factor of 15.1, confirmed on two separate runs. The same tool then writes one HTML file with the model packed inside it.'}
+     d:'<b>58 MB becomes 6.8 MB</b>, small enough to open on a phone. The same tool then writes one HTML file with the model packed inside it, and that file is what gets handed out.'}
   ];
   var CAPS={
     'cap-in':'<b>251 photos, numbered in the order they were taken.</b> That numbering is the whole interface between the robot and the Mac. It tells the software which photos are neighbours, which is why a skipped number costs more than a blurry photo.',
@@ -965,7 +965,7 @@ body.doc .deckonly{display:none;}
     ]},
     {name:'robot', sub:'the JetBot half', pkgs:[
       ['ok','On the network: booted, Wi-Fi joined, Jupyter open in the browser, wheels driving'],
-      ['warn','Live camera picture while driving, and the camera mounted'],
+      ['warn','Live camera picture while driving, from the notebook the robot shipped with'],
       ['warn','Capture script: written, never executed, on hardware or anywhere else'],
       ['warn','Fetching the folder to the Mac: written, run against a stand-in, never a real robot'],
       ['idle','One real capture drive, handed to the pipeline']
