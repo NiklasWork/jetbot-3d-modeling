@@ -1,0 +1,394 @@
+<title>JetBot Deck Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;800&family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Karla:wght@400;500;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Azeret+Mono:wght@400;500;700&display=swap">
+
+<style>
+  /* ---- shell tokens: complete light palette on bare :root ---- */
+  :root {
+    --bg:        #eef0f1;
+    --surface:   #f8f9f9;
+    --ink:       #171c1f;
+    --ink-soft:  #4d585e;
+    --ink-faint: #7b878d;
+    --rule:      #d2d8da;
+    --rule-soft: #e2e7e8;
+    --mark:      #1b6b7a;
+    --shadow:    0 1px 2px rgba(23,28,31,.06), 0 8px 24px -12px rgba(23,28,31,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:        #14181a;
+      --surface:   #1c2225;
+      --ink:       #e7ecee;
+      --ink-soft:  #a3afb4;
+      --ink-faint: #748087;
+      --rule:      #2e373b;
+      --rule-soft: #242c2f;
+      --mark:      #5ec5d6;
+      --shadow:    0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:        #14181a;
+    --surface:   #1c2225;
+    --ink:       #e7ecee;
+    --ink-soft:  #a3afb4;
+    --ink-faint: #748087;
+    --rule:      #2e373b;
+    --rule-soft: #242c2f;
+    --mark:      #5ec5d6;
+    --shadow:    0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Chivo", ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 40px 24px 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  /* ---- page head ---- */
+  .head { display: flex; flex-direction: column; gap: 12px; max-width: 62ch; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--mark); font-weight: 600;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 40px); font-weight: 800; line-height: 1.1;
+    letter-spacing: -.02em; margin: 0; text-wrap: balance;
+  }
+  .lede { color: var(--ink-soft); font-size: 16px; margin: 0; }
+  .lede b { color: var(--ink); font-weight: 600; }
+
+  /* ---- direction card ---- */
+  .dir {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 28px;
+    align-items: start;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+  }
+  @media (max-width: 820px) { .dir { grid-template-columns: minmax(0,1fr); gap: 20px; } }
+
+  .dir-info { display: flex; flex-direction: column; gap: 16px; }
+  .dir-name {
+    display: flex; align-items: baseline; gap: 10px;
+    font-size: 22px; font-weight: 800; letter-spacing: -.01em;
+  }
+  .dir-key {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 600;
+    color: var(--ink-faint); letter-spacing: .1em;
+  }
+  .thesis { margin: 0; color: var(--ink-soft); font-size: 15px; max-width: 46ch; }
+  .thesis b { color: var(--ink); font-weight: 600; }
+
+  .meta { display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; }
+  .meta-row { display: grid; grid-template-columns: 74px minmax(0,1fr); gap: 12px; align-items: baseline; }
+  .meta-k {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint);
+  }
+  .meta-v { color: var(--ink-soft); }
+  .meta-v.risk { color: var(--ink-soft); font-style: italic; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    width: 40px; height: 40px; border-radius: 3px;
+    border: 1px solid rgba(128,128,128,.28);
+    position: relative; cursor: default;
+  }
+  .chip span {
+    position: absolute; inset: auto 0 -17px 0; text-align: center;
+    font-family: "IBM Plex Mono", monospace; font-size: 8.5px;
+    color: var(--ink-faint); letter-spacing: .02em;
+  }
+  .chips { padding-bottom: 18px; }
+
+  /* ---- the specimen slide: same content, three treatments ---- */
+  .stage { display: flex; flex-direction: column; gap: 8px; }
+  .stage-cap {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint);
+  }
+
+  .slide {
+    container-type: inline-size;
+    aspect-ratio: 16 / 9;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    background: var(--s-ground);
+    color: var(--s-ink);
+    font-family: var(--s-body);
+    display: flex; flex-direction: column;
+    padding: 5cqw 5.5cqw;
+    gap: 2.4cqw;
+    position: relative;
+  }
+
+  .s-eyebrow {
+    font-family: var(--s-data); font-size: 1.7cqw; font-weight: 600;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--s-accent);
+  }
+  .s-title {
+    font-family: var(--s-display); font-size: 4.6cqw; line-height: 1.08;
+    font-weight: var(--s-display-w, 800); letter-spacing: -.015em; margin: 0;
+    color: var(--s-ink);
+  }
+  .s-rows { display: flex; flex-direction: column; gap: 1.15cqw; margin-top: .4cqw; }
+  .s-row { display: grid; grid-template-columns: 1fr auto auto; gap: 2cqw; align-items: center; }
+  .s-branch { font-size: 2.1cqw; color: var(--s-ink); font-weight: 500; }
+  .s-count {
+    font-family: var(--s-data); font-size: 2.1cqw; color: var(--s-muted);
+    font-variant-numeric: tabular-nums; letter-spacing: .02em;
+  }
+  .s-dots { display: flex; gap: .5cqw; }
+  .s-dots i { width: 1.5cqw; height: 1.5cqw; border-radius: var(--s-dot-radius, 50%); display: block; }
+  .d-ok   { background: var(--s-ok); }
+  .d-warn { background: var(--s-warn); }
+  .d-idle { background: var(--s-idle); }
+
+  .s-strip {
+    margin-top: auto; padding-top: 2cqw;
+    border-top: 1px solid var(--s-rule);
+    display: flex; gap: 5cqw;
+  }
+  .s-stat { display: flex; flex-direction: column; gap: .2cqw; }
+  .s-num {
+    font-family: var(--s-data); font-size: 3cqw; font-weight: 600;
+    color: var(--s-accent); font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .s-lbl {
+    font-family: var(--s-data); font-size: 1.4cqw; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--s-muted);
+  }
+
+  /* ===== A · Instrument ===== */
+  .dir-a .slide {
+    --s-ground: #0e1417; --s-ink: #e4eaec; --s-muted: #7f9096;
+    --s-accent: #e8a33d; --s-rule: #223036;
+    --s-ok: #4fb286; --s-warn: #e8a33d; --s-idle: #2c3b42;
+    --s-display: "Chivo", sans-serif; --s-body: "Chivo", sans-serif;
+    --s-data: "IBM Plex Mono", monospace; --s-dot-radius: 1px;
+  }
+  .dir-a .slide::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg, rgba(232,163,61,.05) 0 1px, transparent 1px 84px);
+  }
+
+  /* ===== B · Emergence ===== */
+  .dir-b .slide {
+    --s-ground: #f4f4f7; --s-ink: #1d1c2a; --s-muted: #6f6d85;
+    --s-accent: #5b4bd6; --s-rule: #dedde8;
+    --s-ok: #3f9e78; --s-warn: #d98a2b; --s-idle: #cfced9;
+    --s-display: "Fraunces", Georgia, serif; --s-body: "Karla", sans-serif;
+    --s-data: "Karla", sans-serif;
+  }
+  .dir-b .slide::before {
+    content: ""; position: absolute; width: 55%; aspect-ratio: 1; right: -12%; top: -18%;
+    border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(91,75,214,.22) 0%, rgba(91,75,214,.10) 42%, transparent 68%);
+    filter: blur(6px);
+  }
+  .dir-b .slide::after {
+    content: ""; position: absolute; width: 26%; aspect-ratio: 1; right: 16%; top: 12%;
+    border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(214,75,146,.20) 0%, transparent 66%);
+    filter: blur(4px);
+  }
+  .dir-b .s-title { --s-display-w: 600; }
+
+  /* ===== C · Plate ===== */
+  .dir-c .slide {
+    --s-ground: #e6eaec; --s-ink: #12181c; --s-muted: #5a686f;
+    --s-accent: #1b4b6b; --s-rule: #b9c3c8;
+    --s-ok: #2f6b4f; --s-warn: #a8781f; --s-idle: #c2cbd0;
+    --s-display: "Bricolage Grotesque", sans-serif; --s-body: "Bricolage Grotesque", sans-serif;
+    --s-data: "Azeret Mono", monospace; --s-dot-radius: 0;
+  }
+  .dir-c .slide {
+    background-image:
+      linear-gradient(rgba(27,75,107,.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(27,75,107,.055) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .dir-c .s-eyebrow { border-left: .5cqw solid var(--s-accent); padding-left: 1.2cqw; }
+
+  /* ---- legend + footer note ---- */
+  .note {
+    border-top: 1px solid var(--rule);
+    padding-top: 24px;
+    display: flex; flex-direction: column; gap: 12px;
+    max-width: 68ch;
+  }
+  .note h2 { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: -.005em; }
+  .note p { margin: 0; color: var(--ink-soft); font-size: 14.5px; }
+  .note code {
+    font-family: "IBM Plex Mono", monospace; font-size: 12.5px;
+    background: var(--surface); border: 1px solid var(--rule-soft);
+    padding: 1px 5px; border-radius: 3px; color: var(--ink);
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 2px; }
+  .lg { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--ink-soft); }
+  .lg i { width: 10px; height: 10px; border-radius: 2px; display: block; }
+</style>
+
+<div class="wrap">
+
+  <header class="head">
+    <div class="eyebrow">Design directions · 09 Sep 2026</div>
+    <h1>Three ways this deck could look</h1>
+    <p class="lede">Each specimen below shows the <b>same real slide</b> — the status board, with the actual package counts and measured numbers from this repo — rendered in a different visual direction. Pick one, or name the parts you want combined.</p>
+  </header>
+
+  <!-- ============ A ============ -->
+  <section class="dir dir-a">
+    <div class="dir-info">
+      <div class="dir-name">Instrument <span class="dir-key">A</span></div>
+      <p class="thesis">The vernacular of lab equipment. Dark readout, monospace figures, hairline scale ticks. <b>The numbers are the hero</b> — which fits a project whose credibility is that it measured instead of guessed.</p>
+      <div class="chips">
+        <div class="chip" style="background:#0e1417"><span>0E1417</span></div>
+        <div class="chip" style="background:#223036"><span>223036</span></div>
+        <div class="chip" style="background:#e4eaec"><span>E4EAEC</span></div>
+        <div class="chip" style="background:#e8a33d"><span>E8A33D</span></div>
+        <div class="chip" style="background:#4fb286"><span>4FB286</span></div>
+      </div>
+      <div class="meta">
+        <div class="meta-row"><span class="meta-k">Type</span><span class="meta-v">Chivo 800 · IBM Plex Mono</span></div>
+        <div class="meta-row"><span class="meta-k">Beamer</span><span class="meta-v">Strongest — dark ground survives a bright lecture hall</span></div>
+        <div class="meta-row"><span class="meta-k">Risk</span><span class="meta-v risk">Closest to a generic dev dashboard. Needs the tick-rail and tabular figures to earn its keep.</span></div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="stage-cap">Specimen · status slide</div>
+      <div class="slide">
+        <div class="s-eyebrow">Status · Branch coverage</div>
+        <h2 class="s-title">Half of it is measured.<br>Half has never met a motor.</h2>
+        <div class="s-rows">
+          <div class="s-row"><span class="s-branch">pipeline-3d</span><span class="s-count">5 / 6</span>
+            <span class="s-dots"><i class="d-ok"></i><i class="d-ok"></i><i class="d-ok"></i><i class="d-ok"></i><i class="d-ok"></i><i class="d-idle"></i></span></div>
+          <div class="s-row"><span class="s-branch">robot</span><span class="s-count">0 / 5</span>
+            <span class="s-dots"><i class="d-warn"></i><i class="d-warn"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i></span></div>
+          <div class="s-row"><span class="s-branch">driving</span><span class="s-count">1 / 6</span>
+            <span class="s-dots"><i class="d-warn"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i></span></div>
+        </div>
+        <div class="s-strip">
+          <div class="s-stat"><span class="s-num">380 s</span><span class="s-lbl">251 images → model</span></div>
+          <div class="s-stat"><span class="s-num">15.1×</span><span class="s-lbl">ply → sog</span></div>
+          <div class="s-stat"><span class="s-num">1280×960</span><span class="s-lbl">per frame</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ B ============ -->
+  <section class="dir dir-b">
+    <div class="dir-info">
+      <div class="dir-name">Emergence <span class="dir-key">B</span></div>
+      <p class="thesis">Borrows the look of the thing being built: soft translucent blooms that resolve into form. Light, optical, a serif that carries warmth. <b>The page feels like the artifact it describes.</b></p>
+      <div class="chips">
+        <div class="chip" style="background:#f4f4f7"><span>F4F4F7</span></div>
+        <div class="chip" style="background:#dedde8"><span>DEDDE8</span></div>
+        <div class="chip" style="background:#1d1c2a"><span>1D1C2A</span></div>
+        <div class="chip" style="background:#5b4bd6"><span>5B4BD6</span></div>
+        <div class="chip" style="background:#d64b92"><span>D64B92</span></div>
+      </div>
+      <div class="meta">
+        <div class="meta-row"><span class="meta-k">Type</span><span class="meta-v">Fraunces 600 · Karla</span></div>
+        <div class="meta-row"><span class="meta-k">Beamer</span><span class="meta-v">Weakest of the three — light ground washes out under hall lighting</span></div>
+        <div class="meta-row"><span class="meta-k">Risk</span><span class="meta-v risk">The blooms must stay behind the type, never around it, or it turns decorative fast.</span></div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="stage-cap">Specimen · status slide</div>
+      <div class="slide">
+        <div class="s-eyebrow">Status · Branch coverage</div>
+        <h2 class="s-title">Half of it is measured.<br>Half has never met a motor.</h2>
+        <div class="s-rows">
+          <div class="s-row"><span class="s-branch">pipeline-3d</span><span class="s-count">5 / 6</span>
+            <span class="s-dots"><i class="d-ok"></i><i class="d-ok"></i><i class="d-ok"></i><i class="d-ok"></i><i class="d-ok"></i><i class="d-idle"></i></span></div>
+          <div class="s-row"><span class="s-branch">robot</span><span class="s-count">0 / 5</span>
+            <span class="s-dots"><i class="d-warn"></i><i class="d-warn"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i></span></div>
+          <div class="s-row"><span class="s-branch">driving</span><span class="s-count">1 / 6</span>
+            <span class="s-dots"><i class="d-warn"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i></span></div>
+        </div>
+        <div class="s-strip">
+          <div class="s-stat"><span class="s-num">380 s</span><span class="s-lbl">251 images → model</span></div>
+          <div class="s-stat"><span class="s-num">15.1×</span><span class="s-lbl">ply → sog</span></div>
+          <div class="s-stat"><span class="s-num">1280×960</span><span class="s-lbl">per frame</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ C ============ -->
+  <section class="dir dir-c">
+    <div class="dir-info">
+      <div class="dir-name">Plate <span class="dir-key">C</span></div>
+      <p class="thesis">A technical manual: drafting grid, prussian-blue ink, square status marks, figures that read as plates rather than illustrations. <b>Says "documented machine"</b> — and the architecture diagram becomes the centrepiece it deserves to be.</p>
+      <div class="chips">
+        <div class="chip" style="background:#e6eaec"><span>E6EAEC</span></div>
+        <div class="chip" style="background:#b9c3c8"><span>B9C3C8</span></div>
+        <div class="chip" style="background:#12181c"><span>12181C</span></div>
+        <div class="chip" style="background:#1b4b6b"><span>1B4B6B</span></div>
+        <div class="chip" style="background:#a8781f"><span>A8781F</span></div>
+      </div>
+      <div class="meta">
+        <div class="meta-row"><span class="meta-k">Type</span><span class="meta-v">Bricolage Grotesque 800 · Azeret Mono</span></div>
+        <div class="meta-row"><span class="meta-k">Beamer</span><span class="meta-v">Good — high contrast, but a pale ground lights the room</span></div>
+        <div class="meta-row"><span class="meta-k">Risk</span><span class="meta-v risk">The grid has to stay almost invisible. Turned up, it fights every diagram drawn on top of it.</span></div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="stage-cap">Specimen · status slide</div>
+      <div class="slide">
+        <div class="s-eyebrow">Status · Branch coverage</div>
+        <h2 class="s-title">Half of it is measured.<br>Half has never met a motor.</h2>
+        <div class="s-rows">
+          <div class="s-row"><span class="s-branch">pipeline-3d</span><span class="s-count">5 / 6</span>
+            <span class="s-dots"><i class="d-ok"></i><i class="d-ok"></i><i class="d-ok"></i><i class="d-ok"></i><i class="d-ok"></i><i class="d-idle"></i></span></div>
+          <div class="s-row"><span class="s-branch">robot</span><span class="s-count">0 / 5</span>
+            <span class="s-dots"><i class="d-warn"></i><i class="d-warn"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i></span></div>
+          <div class="s-row"><span class="s-branch">driving</span><span class="s-count">1 / 6</span>
+            <span class="s-dots"><i class="d-warn"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i><i class="d-idle"></i></span></div>
+        </div>
+        <div class="s-strip">
+          <div class="s-stat"><span class="s-num">380 s</span><span class="s-lbl">251 images → model</span></div>
+          <div class="s-stat"><span class="s-num">15.1×</span><span class="s-lbl">ply → sog</span></div>
+          <div class="s-stat"><span class="s-num">1280×960</span><span class="s-lbl">per frame</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="note">
+    <h2>What the three status colours mean</h2>
+    <div class="legend">
+      <span class="lg"><i style="background:#4fb286"></i> Built and measured</span>
+      <span class="lg"><i style="background:#e8a33d"></i> Written, never run on hardware</span>
+      <span class="lg"><i style="background:#8c979c"></i> Open</span>
+    </div>
+    <p>The counts are real: <code>pipeline-3d</code> 5 of 6 packages done and measured, <code>robot</code> 0 of 5 ever executed on the device, <code>driving</code> 1 of 6 built against a stand-in robot. Every figure in the strip comes from <code>context/measurements.md</code>.</p>
+  </section>
+
+  <section class="note">
+    <h2>Mixing is allowed</h2>
+    <p>These are directions, not packages. “C's grid with A's dark ground”, “B's type on A's palette” are legitimate answers — as is “none of these, but warmer”.</p>
+  </section>
+
+</div>
