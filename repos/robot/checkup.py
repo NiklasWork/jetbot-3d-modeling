@@ -9,8 +9,9 @@
 # the Mac:
 #
 #   1. Does the camera really deliver >= 1280x960? Every JetBot notebook builds
-#      it at 224x224, and jetbot 0.4.3 hard-codes sensor-mode=3 into the
-#      GStreamer pipeline, so the requested caps may be silently ignored.
+#      it at 224x224, so the resolution this pipeline actually reaches has to
+#      be measured rather than requested. capture.py builds its own GStreamer
+#      pipeline and lets Argus pick the sensor mode from the caps.
 #   2. Does the SD card keep up? capture.py stores one JPEG per step; if encode
 #      plus write costs more than the settle wait, the drive stalls.
 #
@@ -49,7 +50,7 @@ CANDIDATES = [
     (1640, 1232, 1640, 1232, 21, "mode 3 native, no scaling at all"),
     (1280, 960, 1280, 960, 21, "non-native caps - does Argus accept them?"),
     (1280, 720, 1280, 720, 30, "16:9, the smallest size 3DGS can still use"),
-    (224, 224, 816, 616, 21, "jetbot's own default - known-good baseline"),
+    (224, 224, 816, 616, 21, "the JetBot notebooks' own default - baseline"),
 ]
 
 # The floor 3DGS needs (D-013). A candidate that starts but delivers less than
@@ -72,6 +73,31 @@ def _pixels(size):
 
 def _good_enough(size):
     return size[0] >= TARGET_W and size[1] >= TARGET_H
+
+
+# A dark frame at maximum sensor gain is not a picture of anything, and the
+# blur metric cannot tell you that: Laplacian variance measures local contrast,
+# and amplified sensor noise has plenty. Measured 2026-09-10 on twenty frames
+# taken with the lens seeing nothing, the median score was 60 and the highest
+# 2017 - numbers that read as a well focused scene and would have produced a
+# --min-sharpness that passes noise and rejects real frames.
+#
+# The discriminator is scale. Noise is uncorrelated between neighbouring
+# pixels, so averaging the frame down to a sixteenth flattens it; a real scene
+# keeps its contrast, because walls and furniture are larger than a pixel. So
+# the standard deviation of the shrunk frame separates the two where the blur
+# metric cannot.
+SCENE_MIN_LEVEL = 12.0      # mean grey, 0-255. Below this the frame is black
+SCENE_MIN_STRUCTURE = 6.0   # std of the 16x shrunk frame. Below this it is noise
+
+
+def _scene(cv2, gray):
+    """Return (mean level, coarse structure) for one greyscale frame."""
+    height, width = gray.shape[0], gray.shape[1]
+    small = cv2.resize(gray, (max(1, width // 16), max(1, height // 16)),
+                       interpolation=cv2.INTER_AREA)
+    mean, std = cv2.meanStdDev(small)
+    return float(mean[0][0]), float(std[0][0])
 
 
 def _median(values):
@@ -121,7 +147,7 @@ def _try_camera(spec, settle, pos=""):
         print("      delivers {0}x{1}  ({2})".format(got_w, got_h, note))
         return (got_w, got_h)
     except ImportError as exc:
-        print("      cannot import jetbot ({0}) - this runs on the robot, "
+        print("      cannot import cv2 ({0}) - this runs on the robot, "
               "not on the Mac".format(exc))
         raise SystemExit(1)
     except Exception as exc:
@@ -147,6 +173,7 @@ def _burst(cv2, camera, outdir, frames, quality, max_w, max_h):
     """
     jpeg_params = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
     grabs, resizes, blurs, writes, sizes, scores = [], [], [], [], [], []
+    levels, structures = [], []
     written = []
 
     total_start = time.time()
@@ -162,6 +189,9 @@ def _burst(cv2, camera, outdir, frames, quality, max_w, max_h):
         t2 = time.time()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         scores.append(capture._sharpness(cv2, gray))
+        level, structure = _scene(cv2, gray)
+        levels.append(level)
+        structures.append(structure)
         t3 = time.time()
         path = os.path.join(outdir, CHECKUP_FMT % index)
         if not cv2.imwrite(path, frame, jpeg_params):
@@ -190,6 +220,7 @@ def _burst(cv2, camera, outdir, frames, quality, max_w, max_h):
 
     return {
         "written": written, "sizes": sizes, "scores": scores,
+        "levels": levels, "structures": structures,
         "grabs": grabs, "resizes": resizes, "blurs": blurs, "writes": writes,
         "loop_seconds": loop_seconds, "sync_seconds": sync_seconds,
     }
@@ -223,8 +254,8 @@ def _report(result, delivered, spec, frames, quality, outdir, free_before):
           "~{1:.3f} s at {2} fps".format(grab_median, expected_grab, fps))
     if expected_grab and grab_median < expected_grab / 4.0:
         print("             WARNING - far too fast to be a fresh frame. _grab()")
-        print("             counts new frames by object identity, so if jetbot's")
-        print("             Camera overwrites .value in place instead of")
+        print("             counts new frames by object identity, so if the")
+        print("             camera overwrote .value in place instead of")
         print("             replacing it, the check passes instantly and returns")
         print("             a stale frame. capture.py's whole settle wait (D-013)")
         print("             then buys nothing. Verify before trusting a drive.")
@@ -247,6 +278,13 @@ def _report(result, delivered, spec, frames, quality, outdir, free_before):
               "on its own".format(sync))
     print("  per frame  {0:.3f} s all in, including its share of the flush"
           .format(per_frame))
+    if result.get("levels"):
+        print("  scene      brightness {0:.1f}/255 - coarse structure {1:.1f}  "
+              "{2}".format(_median(result["levels"]), _median(result["structures"]),
+                           "ok, there is something in front of the lens"
+                           if (_median(result["levels"]) >= SCENE_MIN_LEVEL and
+                               _median(result["structures"]) >= SCENE_MIN_STRUCTURE)
+                           else "NOTHING IN FRAME - dark, or the lens is covered"))
     if result["scores"]:
         print("  sharpness  min {0:.0f} - median {1:.0f} - max {2:.0f}   "
               "standing still, this scene, at {3}x{4}"
@@ -289,7 +327,19 @@ def _report(result, delivered, spec, frames, quality, outdir, free_before):
               "--settle so the wait absorbs it."
               .format(per_frame, FRAME_BUDGET))
 
-    if result["scores"] and _good_enough(delivered):
+    blind = (result.get("levels") and
+             (_median(result["levels"]) < SCENE_MIN_LEVEL or
+              _median(result["structures"]) < SCENE_MIN_STRUCTURE))
+    if blind:
+        print("    sharpness   NO THRESHOLD - the camera did not photograph a "
+              "scene. Median brightness {0:.1f} of 255 and coarse structure "
+              "{1:.1f}; below {2:.0f} and {3:.0f} the frame is darkness with "
+              "the gain wound up, which the blur metric happily scores as "
+              "sharp. Uncover the lens or turn a light on and run this again "
+              "before trusting any sharpness number."
+              .format(_median(result["levels"]), _median(result["structures"]),
+                      SCENE_MIN_LEVEL, SCENE_MIN_STRUCTURE))
+    elif result["scores"] and _good_enough(delivered):
         print("    sharpness   for the next drive try  --min-sharpness {0:.0f}  "
               "- half the median here. These frames were taken standing still, "
               "so this is the optimistic end of the scale."

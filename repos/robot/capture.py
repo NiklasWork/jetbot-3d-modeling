@@ -144,41 +144,95 @@ def die(msg):
 
 # --- camera ---------------------------------------------------------------
 
+class GstCamera(object):
+    """The CSI camera, read straight through GStreamer.
+
+    This used to be `jetbot.Camera` and cannot be, on this robot. Measured
+    2026-09-10: the `jetbot` package is not installed on the host at all - it
+    lives only inside the Docker container Jupyter runs in, and `~/jetbot` is
+    just the git clone, which Python picks up as an empty namespace package so
+    that `import jetbot` *succeeds* and yields nothing. Putting the real
+    package on the path does not help either: its `__init__` imports
+    `ipywidgets`, because the package assumes a Jupyter kernel. That is 49 apt
+    packages, plus 10 more for the compiler `Robot`'s dependency chain needs,
+    on a shared robot with 1.5 GB free - to satisfy imports of `Heartbeat` and
+    `ObjectDetector` we never call. See repos/robot/README.md, Our footprint.
+
+    The interface is the one the rest of this file already expects: `.value`
+    holds the most recent frame and is *replaced*, never written in place, so
+    `_grab()` can count fresh frames by object identity. `.stop()` releases the
+    sensor.
+
+    On the pipeline: the IMX219 is the 160 deg module on this robot (D-010).
+    `sensor-mode` is deliberately **not** pinned. jetbot 0.4.3 hard-coded
+    `sensor-mode=3` and this file used to carry a note that the documented way
+    out was jetcam, which passes `sensor-id` and lets Argus choose whichever
+    mode fits the requested caps. Building the pipeline here gets that for
+    free: ask for the capture size and Argus picks the mode.
+
+    Aspect note, unchanged: 1640/1232 = 1.331 against 1280/960 = 1.333. The
+    0.2 % anisotropic stretch is harmless, COLMAP's OPENCV_FISHEYE model
+    estimates fx and fy separately anyway.
+    """
+
+    PIPELINE = ("nvarguscamerasrc sensor-id={sensor} ! "
+                "video/x-raw(memory:NVMM),width={cw},height={ch},"
+                "framerate={fps}/1,format=NV12 ! "
+                "nvvidconv ! video/x-raw,width={w},height={h},format=BGRx ! "
+                "videoconvert ! video/x-raw,format=BGR ! "
+                "appsink drop=true max-buffers=1 sync=false")
+
+    def __init__(self, width, height, capture_width, capture_height, fps,
+                 sensor=0):
+        import cv2
+        import threading
+        self._cv2 = cv2
+        pipeline = self.PIPELINE.format(sensor=sensor, cw=capture_width,
+                                        ch=capture_height, fps=fps,
+                                        w=width, h=height)
+        self._cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
+        if not self._cap.isOpened():
+            self._cap.release()
+            raise RuntimeError("GStreamer would not open the pipeline: "
+                               + pipeline)
+        ok, frame = self._cap.read()
+        if not ok or frame is None:
+            self._cap.release()
+            raise RuntimeError("pipeline opened but delivered no first frame")
+        self.value = frame
+        self._running = True
+        # Daemon thread: the reader must never be the reason the process
+        # refuses to exit. `.stop()` is what shuts it down cleanly.
+        self._thread = threading.Thread(target=self._loop)
+        self._thread.daemon = True
+        self._thread.start()
+
+    def _loop(self):
+        while self._running:
+            ok, frame = self._cap.read()
+            if ok and frame is not None:
+                self.value = frame          # replace, never write in place
+            else:
+                time.sleep(0.005)
+
+    def stop(self):
+        self._running = False
+        thread = getattr(self, "_thread", None)
+        if thread is not None:
+            thread.join(timeout=2.0)
+        try:
+            self._cap.release()
+        except Exception:
+            pass
+
+
 def open_camera(width, height, capture_width, capture_height, fps):
-    """Build a jetbot Camera at a resolution 3DGS can use.
-
-    The trap: jetbot 0.4.3's OpenCvGstCamera defaults to 224x224 output from
-    an 816x616 capture. width/height/capture_width/capture_height/fps are all
-    traitlets tagged config=True, and its __init__ applies **kwargs (through
-    super().__init__) *before* it builds the GStreamer string, so passing them
-    here really does change the pipeline - it is not a display-only setting.
-
-    What cannot be changed from the outside is 'sensor-mode=3', which that
-    class hard-codes into the pipeline. On the IMX219 - the 160 deg module on
-    this robot, D-010 - mode 3 is natively 1640x1232 at 30 fps, so asking for
-    exactly 1640x1232 keeps the ISP from rescaling and gives the largest 4:3
-    frame the mode can deliver. nvvidconv then scales it to the requested
-    1280x960 on the GPU, so no CPU resize is needed in the normal case.
-
-    Aspect note: 1640/1232 = 1.331 against 1280/960 = 1.333. The 0.2 %
-    anisotropic stretch is harmless - COLMAP's OPENCV_FISHEYE model estimates
-    fx and fy separately anyway.
-
-    If a future build fights this (wrong mode, capped resolution, an 'Invalid
-    Sensor mode' from nvarguscamerasrc), the documented fallback is
-    NVIDIA-AI-IOT/jetcam: its CSICamera builds the same pipeline with
-    'sensor-id' instead of 'sensor-mode', which lets Argus pick whichever mode
-    fits the requested caps. Deliberately not wired in here - swapping it in is
-    a two-line change once we know it is needed.
+    """Open the camera at a resolution 3DGS can use.
 
     Raises instead of exiting, so checkup.py can walk a list of candidate
     resolutions; _open_camera() below is the variant that gives up with advice.
     """
-    from jetbot import Camera
-    return Camera(width=width, height=height,
-                  capture_width=capture_width,
-                  capture_height=capture_height,
-                  fps=fps)
+    return GstCamera(width, height, capture_width, capture_height, fps)
 
 
 def _open_camera(args):
@@ -187,17 +241,82 @@ def _open_camera(args):
         return open_camera(args.width, args.height, args.capture_width,
                            args.capture_height, args.fps)
     except ImportError as exc:
-        die("cannot import jetbot ({0}). This script runs on the robot, "
+        die("cannot import cv2 ({0}). This script runs on the robot, "
             "not on the Mac.".format(exc))
     except Exception as exc:
         die("camera would not start at {0}x{1} (capture {2}x{3}, {4} fps): {5}\n"
             "     Common causes: something else holds the camera - close the\n"
-            "     Jupyter notebooks, then 'sudo systemctl restart nvargus-daemon';\n"
-            "     or sensor-mode 3 does not offer this capture size - lower\n"
-            "     --capture-width/--capture-height, or see the jetcam note in\n"
-            "     _open_camera()."
+            "     Jupyter notebooks, then 'sudo systemctl restart nvargus-daemon'\n"
+            "     (ask first, it kills whatever else was using the sensor); or no\n"
+            "     sensor mode offers this capture size - lower\n"
+            "     --capture-width/--capture-height."
             .format(args.width, args.height, args.capture_width,
                     args.capture_height, args.fps, exc))
+
+
+def _motor_pair_class():
+    """The two drive motors, without the jetbot package.
+
+    This mirrors `jetbot/motor.py` and `jetbot/robot.py` from jetbot 0.4.3
+    deliberately and line for line in behaviour, including the part that looks
+    wrong: a *negative* mapped value runs the motor FORWARD. That is what the
+    delivered code does, it matches how these motors are wired, and this file
+    is in no position to correct it - see the warning below.
+
+    Why not the package: `jetbot/__init__.py` needs ipywidgets, and getting
+    `Robot` importable on this host costs about sixty apt packages for imports
+    we never call (README.md, Our footprint). `Adafruit_MotorHAT` is the
+    library jetbot's own motor.py is built on, it is pure Python, and it is
+    installed. The HAT answers on i2c-1 at 0x60, confirmed with i2cdetect.
+
+    *** NO PART OF THIS HAS EVER DRIVEN A MOTOR. *** It was written while the
+    robot was explicitly not to be moved, so it is checked for imports and for
+    the arithmetic below, and for nothing else. Before the first drive, put the
+    robot on a stand with its wheels off the ground and confirm that a positive
+    value turns both wheels forwards. If it does not, the direction constants
+    here are the place to fix it, not the manoeuvre tables above.
+    """
+    from Adafruit_MotorHAT import Adafruit_MotorHAT
+
+    class _Motor(object):
+        def __init__(self, driver, channel, alpha=1.0, beta=0.0):
+            self._motor = driver.getMotor(channel)
+            self._alpha = alpha
+            self._beta = beta
+            atexit.register(self._release)
+
+        def set(self, value):
+            mapped = int(255.0 * (self._alpha * value + self._beta))
+            speed = min(max(abs(mapped), 0), 255)
+            self._motor.setSpeed(speed)
+            if mapped < 0:
+                self._motor.run(Adafruit_MotorHAT.FORWARD)
+            else:
+                self._motor.run(Adafruit_MotorHAT.BACKWARD)
+
+        def _release(self):
+            try:
+                self._motor.run(Adafruit_MotorHAT.RELEASE)
+            except Exception:
+                pass
+
+    class _MotorPair(object):
+        """The slice of jetbot's Robot that capture.py actually calls."""
+
+        def __init__(self, i2c_bus=1, addr=0x60, left_channel=1,
+                     right_channel=2):
+            self._driver = Adafruit_MotorHAT(addr=addr, i2c_bus=i2c_bus)
+            self.left_motor = _Motor(self._driver, left_channel)
+            self.right_motor = _Motor(self._driver, right_channel)
+
+        def set_motors(self, left_speed, right_speed):
+            self.left_motor.set(left_speed)
+            self.right_motor.set(right_speed)
+
+        def stop(self):
+            self.set_motors(0.0, 0.0)
+
+    return _MotorPair
 
 
 def _grab(camera, flush, timeout=3.0):
@@ -489,9 +608,11 @@ def main(argv=None):
     except ImportError as exc:
         die("cannot import cv2 ({0}). This script runs on the robot.".format(exc))
     try:
-        from jetbot import Robot
+        Robot = _motor_pair_class()
     except ImportError as exc:
-        die("cannot import jetbot ({0}). This script runs on the robot.".format(exc))
+        die("cannot import Adafruit_MotorHAT ({0}). Install it on the robot "
+            "with 'sudo pip3 install --no-deps Adafruit-MotorHAT'; see "
+            "README.md, Our footprint.".format(exc))
 
     print("capture: {0}".format(outdir))
     print("         {0}, continuing at frame {1:04d}"
