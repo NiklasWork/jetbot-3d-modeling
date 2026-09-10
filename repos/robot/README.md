@@ -146,10 +146,46 @@ paths below, and anything outside them is somebody else's — that is the whole 
 | `~/jetbot-3d/` | you, by hand | where these scripts live. One folder, no installer |
 | `~/captures/<name>/` | `capture.py` | `frame_NNNN.jpg` per drive; `--root` moves it |
 | `~/checkup/` | `checkup.py` | its burst frames; `--outdir` moves it. It deletes its own frames afterwards and removes the folder again if it was the one that created it — `--keep` is what stops that |
+| `/usr/local/lib/python3.6/dist-packages/` | `pip3`, 2026-09-10 | `Adafruit_MotorHAT` 1.4.0 and its I2C layer `Adafruit_PureIO` 1.1.11, both pure Python. This directory was **empty** on the delivered image, so everything in it is ours and `sudo pip3 uninstall Adafruit-MotorHAT Adafruit-PureIO` puts it back |
 
-Nothing else. No `apt`, no `pip install`, no systemd unit, no file under `/etc` or
-`/usr`, no change to the JetBot notebooks. Both scripts import only from the
-delivered stack — `jetbot`, `cv2`, and the standard library (D-008).
+Two apt packages went on as well, and no others: `python3-pip` and `python-pip-whl`,
+installed with `--no-install-recommends` so the toolchain and the system Python were
+left alone. One side effect that cannot be undone: apt refreshed
+`python3-pkg-resources` from 39.0.1-2 to 39.0.1-2ubuntu0.1, the security point
+release of the same version. No systemd unit, no file under `/etc`, no change to the
+JetBot notebooks.
+
+### Why the scripts do not import `jetbot`
+
+They used to, and on this device that cannot work. Measured 2026-09-10:
+
+- The `jetbot` package is **not installed** on the host. It exists only as the git
+  clone at `/home/jetbot/jetbot/`, and only inside the Docker container Jupyter runs
+  in. Worse, `import jetbot` from the home directory *succeeds* and yields nothing —
+  `~/jetbot` is picked up as an empty namespace package, so the failure surfaces
+  later as `cannot import name 'Camera'` rather than as a missing module.
+- Put the real package on the path and it still will not load on the host.
+  `jetbot/__init__.py` imports `heartbeat`, which imports **`ipywidgets`**: the
+  package assumes a Jupyter kernel. Installing that is 49 apt packages. `Robot`
+  additionally wants `Adafruit_MotorHAT`, whose PyPI dependency chain needs a C
+  compiler for `spidev`, another 10.
+
+Roughly sixty packages on a shared robot with 1.5 GB free, to satisfy imports of
+`Heartbeat` and `ObjectDetector` that we never call. So the scripts take the two
+things they actually need directly:
+
+- **Camera** — `cv2.VideoCapture(<nvarguscamerasrc pipeline>, cv2.CAP_GSTREAMER)`.
+  `cv2` 4.1.1 and GStreamer are both on the delivered image. This is the path that
+  produced `captures/mount-check-2026-09-10/`.
+- **Motors** — `from Adafruit_MotorHAT import Adafruit_MotorHAT`, the same library
+  `jetbot/motor.py` itself is built on, installed with `pip3 --no-deps` so none of
+  the `spidev` chain comes with it. The HAT answers on i2c-1 at **`0x60`**, confirmed
+  by `i2cdetect -y -r 1` (the bus also carries `0x3c` OLED, `0x41` power monitor,
+  `0x70` PCA9685 all-call).
+
+This is not a departure from D-008. The delivered stack stays exactly as delivered;
+we simply stop routing through a package that was never installed outside its
+container.
 
 Three things are shared and cannot be made private, so they need a word before a drive:
 

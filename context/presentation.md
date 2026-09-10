@@ -1,7 +1,6 @@
 ---
-focus: Reordered and retrimmed 2026-09-10 — same 11 sections in a new order (§ Sections), the opening cloud is now the trained model in a small corner box, and the camera-angle slide is corrected against the first frames off the robot. Built at 8.69 MB, **not yet republished**: https://claude.ai/code/artifact/310cd4ee-8355-4ff1-8a2f-d573f145f703 still serves the 2026-09-09 version
+focus: Reordered and retrimmed 2026-09-10 — same 11 sections in a new order (§ Sections), the opening cloud is now the trained model in a small corner box, and the camera-angle slide is corrected against the first frames off the robot. Published 2026-09-10 at 8.69 MB: **https://claude.ai/code/artifact/dd31426b-66b2-418a-a005-e92e76306c6c**
 next:
-  - Republish the artifact once the human has reviewed the reordered deck
   - A photograph of the JetBot, the one image nobody but us can produce (§ Assets)
   - Swap the embedded model for a JetBot capture once the robot has produced one (§ Assets)
 blockers: none
@@ -15,7 +14,9 @@ blockers: none
 
 **One HTML file, two modes.** A key toggles between *deck* (arrow keys, one full-viewport section, projector-sized type) and *doc* (the same sections unrolled and scrollable, for sharing after the talk). One content tree, two presentations — a second artifact would drift from the first.
 
-English. Published as an Artifact.
+English. Published as an Artifact: https://claude.ai/code/artifact/dd31426b-66b2-418a-a005-e92e76306c6c
+
+**The URL changed on 2026-09-10 and the old one is gone.** Every earlier note here pointed at `310cd4ee-8355-4ff1-8a2f-d573f145f703`; that artifact no longer resolves and does not appear in the human's own artifact list, so it was deleted or never belonged to this account. There is no way to publish back onto a URL that does not exist. Anyone holding the old link has a dead one. Republishing from this repo keeps the new URL as long as it goes out as `presentation/deck.html` from a session that has read or published it.
 
 **This is an idea being presented, not a deliverable being defended.** Settled 2026-09-09: no grade, no time budget, no external requirement list. Everything in it is therefore changeable, and "the brief asked for it" is never a reason to keep something.
 
