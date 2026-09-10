@@ -70,23 +70,47 @@ KEEP_SPARSE = 24000       # the small card: more than this is one solid block
 # the count could go up and the page get smaller at the same time.
 #
 # **The binding limit is frame time, not bytes.** Measured 2026-09-10 in the
-# browser at 189 000 points on a 768x830 canvas, the size the opening cloud
-# gets on a 1920 projector: 15.2 ms median, 16.3 ms worst, against a 60 fps
-# budget of 16.7. That is with points spread at random, which is the expensive
-# case; the real cloud clips about half of them behind the camera. The budget
-# is nevertheless almost spent, so raising this number trades frames for
-# density. If the deck ever stutters at a podium, this constant is the fix.
-KEEP_DENSE = 200000
+# browser at the full 399 000 on a 768x830 canvas, the size the opening cloud
+# gets on a 1920 projector: 19.5 ms median, 20.9 ms worst, so about 51 fps
+# against a 60 fps budget of 16.7 ms. That is the pessimistic case, points
+# spread at random with random opacities; the real cloud clips a large share
+# behind the camera and skips every splat under alpha 1/50. It is over budget
+# and deliberately so: the rotation is driven by elapsed time, not by frames,
+# so a slower machine turns the room at the same speed and simply draws fewer
+# frames on the way. If a podium ever stutters visibly, lowering this constant
+# is the fix, and 200 000 measured 15.2 ms.
+KEEP_DENSE = 400000
 SEED = 20260910
 
-# Splats below this opacity are the haze a 3DGS model wraps itself in. They are
-# most of why the first attempt read as fog: they cover the geometry without
-# describing any of it. Dropping them is the single biggest legibility win.
-MIN_OPACITY = 0.28
-# And the giant ones are the same problem from the other side — a handful of
-# metre-wide blobs standing in for "somewhere over there". Keep the small ones,
-# which are the ones that sit on surfaces.
-SCALE_PERCENTILE = 0.80
+# Both filters are off, and that is deliberate: the opening slide draws the
+# **whole** model, every gaussian Brush produced. They were introduced when the
+# canvas painted each splat at a flat, depth-derived alpha, and at a flat alpha
+# the low-opacity ones are exactly what a 3DGS model wraps itself in — haze
+# that covers geometry without describing any. Dropping them was then the
+# cheapest legibility win there was.
+#
+# The canvas now carries each splat's own alpha instead (write_packed emits
+# RGBA), so a faint gaussian paints faintly rather than as solid fog, which is
+# what it is in the model too. Filtering has nothing left to fix. Raise
+# MIN_OPACITY above 0 only if a future run proves otherwise, and expect the
+# count on the slide and in the caption to move with it.
+MIN_OPACITY = 0.0
+SCALE_PERCENTILE = 1.0
+
+# Nothing is dropped any more, but not every gaussian deserves the same weight
+# on a canvas that paints each one as a small solid dot. A gaussian's size says
+# what it is: a small one sits on a surface, a large one stands in for "roughly
+# something over there". Painting the large one as a dot puts a hard mark in
+# the middle of nothing, and four hundred thousand of those is the dust the
+# first unfiltered attempt drowned in.
+#
+# So size scales the alpha instead of selecting on it. At or below the
+# reference percentile a splat keeps its own opacity; above it the weight falls
+# with the square of how much wider it is, which is how its energy actually
+# spreads over the area it covers. The old hard cut at the 80th percentile is
+# where the reference sits, so surfaces look as they did while the haze is
+# present and faint rather than absent.
+SIZE_REF_PERCENTILE = 0.80
 
 SH_C0 = 0.28209479177387814
 
@@ -290,8 +314,7 @@ def normalise(rot, clip=CLIP):
         v = [(p[i] - centre[i]) * scale for i in range(3)]
         if max(abs(c) for c in v) > clip:
             continue
-        keep.append([round(v[0], 3), round(v[1], 3), round(v[2], 3),
-                     p[3], p[4], p[5]])
+        keep.append([round(v[0], 3), round(v[1], 3), round(v[2], 3)] + list(p[3:]))
     return keep
 
 
@@ -321,10 +344,13 @@ def write_packed(name, rows, note, clip=CLIP):
     """Write the dense cloud as two base64 blocks instead of JSON numbers.
 
     A splat as `[-0.123,-0.456,0.789,123,45,67]` costs about 30 bytes of text.
-    The same splat as three int16 and three uint8 costs 9 bytes, 12 once base64
-    has padded it out — so the page can carry half again as many points in two
-    thirds of the space. That is the whole reason the opening cloud could go
-    from 120 000 points to every one that survives filtering.
+    The same splat as three int16 and four uint8 costs 10 bytes, about 13 once
+    base64 has padded it out. That is what lets the opening cloud carry the
+    whole model rather than a filtered third of it.
+
+    The fourth colour byte is the splat's own alpha, and it is the reason the
+    filters above could be switched off: the canvas composites with it, so a
+    faint gaussian reads as faint instead of as fog.
 
     Quantisation is not a loss here: `normalise` clips to +/-CLIP, so an int16
     step is CLIP/32767, about 4e-5 of the room. The JSON it replaces rounded to
@@ -344,7 +370,7 @@ def write_packed(name, rows, note, clip=CLIP):
                            int(round(max(-clip, min(clip, r[0])) * q)),
                            int(round(max(-clip, min(clip, r[1])) * q)),
                            int(round(max(-clip, min(clip, r[2])) * q)))
-        col += bytes(bytearray((r[3], r[4], r[5])))
+        col += bytes(bytearray((r[3], r[4], r[5], r[6] if len(r) > 6 else 255)))
     blob = {"n": len(rows), "clip": clip,
             "pos": base64.b64encode(bytes(pos)).decode("ascii"),
             "col": base64.b64encode(bytes(col)).decode("ascii")}
@@ -399,6 +425,8 @@ def main():
     solid = [p for p in raw if p[6] >= MIN_OPACITY]
     cut = percentile([p[7] for p in solid], SCALE_PERCENTILE) if solid else 0.0
     solid = [p for p in solid if p[7] <= cut]
+    ref = percentile([p[7] for p in solid], SIZE_REF_PERCENTILE) if solid else 0.0
+    print("  size reference (p%.0f): %.4f" % (100 * SIZE_REF_PERCENTILE, ref))
     print("  %d of %d survive opacity >= %.2f and size <= %.4f (%.0f%%)"
           % (len(solid), total, MIN_OPACITY, cut, 100.0 * len(solid) / total))
     if len(solid) > KEEP_DENSE:
@@ -416,7 +444,9 @@ def main():
         for dc in (p[3], p[4], p[5]):
             v = 0.5 + SH_C0 * dc
             rgb.append(int(max(0.0, min(1.0, v)) * 255 + 0.5))
-        rot.append((x, y, z, rgb[0], rgb[1], rgb[2]))
+        w = 1.0 if p[7] <= ref or ref <= 0 else (ref / p[7]) ** 2
+        a = int(max(0.0, min(1.0, p[6] * w)) * 255 + 0.5)
+        rot.append((x, y, z, rgb[0], rgb[1], rgb[2], a))
     write_packed("splats.json", thin(normalise(rot), KEEP_DENSE),
                  "the trained model, for the opening slide")
 

@@ -350,7 +350,7 @@ body.doc .deckonly{display:none;}
 <!-- ═══ 1 · what this is ═══ -->
 <section id="s1">
   <canvas class="pcloud" id="pcloud-canvas" aria-hidden="true"></canvas>
-  <div class="cloudnote">The finished example model, turning: 189 000 of its 400 000 coloured blobs, with the see-through ones left out so the room shows through.</div>
+  <div class="cloudnote">The finished example model, turning: the whole of it, all 400 000 coloured blobs, each as see-through here as the model itself says it is.</div>
   <div class="inner">
     <div class="eyebrow">JCFS robotics project · JetBot 3D modeling</div>
     <h1>A robot photographs a&nbsp;room.<br>A laptop turns those photos<br>into a 3D model you&nbsp;can<br>walk&nbsp;through.</h1>
@@ -1044,12 +1044,13 @@ body.doc .deckonly{display:none;}
     var sctx=pcEl.getContext('2d'), ang=0, last=0;
     var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    /* The cloud arrives as two base64 blocks, not as JSON numbers: three
-       int16 and three uint8 per splat cost 12 bytes where the text form cost
-       about 30, which is what lets the page carry every splat that survived
-       filtering instead of two thirds of them. Unpacked once into flat typed
-       arrays, because an array of 189 000 six-element arrays would be three
-       million property lookups per frame. */
+    /* The cloud arrives as two base64 blocks, not as JSON numbers: three int16
+       and four uint8 per splat cost 10 bytes where the text form cost about
+       30, which is what lets the page carry the whole model rather than a
+       filtered third of it. The fourth colour byte is the splat's own alpha.
+       Unpacked once into flat typed arrays, because an array of 400 000
+       seven-element arrays would be nearly three million property lookups per
+       frame. */
     var N=SPL.n, INV=SPL.clip/32767;
     var SX=new Float32Array(N), SY=new Float32Array(N), SZ=new Float32Array(N);
     var CL;
@@ -1150,9 +1151,17 @@ body.doc .deckonly{display:none;}
         var s=d2>0.78?2:1;
         var sx=qx[i]|0, sy=qy[i]|0;
         if(sx<0||sy<0||sx+s>=w||sy+s>=h) continue;
-        var a=d2>0.78?0.92:0.30+0.72*d2;
-        if(a>1) a=1;
-        var ci=i*3, r=CL[ci], g=CL[ci+1], bb=CL[ci+2];
+
+        /* Each splat paints at its own opacity, straight out of the model,
+           rather than at a depth-derived guess. That is what makes drawing the
+           unfiltered model possible: the faint gaussians a 3DGS room wraps
+           itself in are faint here too, instead of arriving as solid fog the
+           way they did when every splat was painted at the same alpha.
+           Below about 1/50 a splat cannot change a pixel it lands on, so it is
+           skipped. It is still in the data; it just has no work to do. */
+        var ci=i<<2, r=CL[ci], g=CL[ci+1], bb=CL[ci+2];
+        var a=CL[ci+3]*(1/255);
+        if(a<0.02) continue;
         for(var dy=0;dy<=s;dy++){
           var pi=((sy+dy)*w+sx)<<2;
           for(var dx=0;dx<=s;dx++,pi+=4){
