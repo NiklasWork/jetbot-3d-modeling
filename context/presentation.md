@@ -1,7 +1,7 @@
 ---
-focus: Rebuilt and republished 2026-09-09 against the human's review — 11 sections, robot left and Mac right throughout, levelled viewer and levelled point cloud both live. https://claude.ai/code/artifact/310cd4ee-8355-4ff1-8a2f-d573f145f703
+focus: Reordered and retrimmed 2026-09-10 — same 11 sections in a new order (§ Sections), the opening cloud is now the trained model in a small corner box, and the camera-angle slide is corrected against the first frames off the robot. Built at 8.69 MB, **not yet republished**: https://claude.ai/code/artifact/310cd4ee-8355-4ff1-8a2f-d573f145f703 still serves the 2026-09-09 version
 next:
-  - Human review of the rebuilt deck
+  - Republish the artifact once the human has reviewed the reordered deck
   - A photograph of the JetBot, the one image nobody but us can produce (§ Assets)
   - Swap the embedded model for a JetBot capture once the robot has produced one (§ Assets)
 blockers: none
@@ -35,17 +35,21 @@ Rebuilt 2026-09-09 from 14 to 11 on the human's review. The three that went: *Ho
 | 2 | The idea as two lanes: cover and photograph · turn photos into a model | VISION.md, D-013 |
 | 3 | "Model" means two things: the driving model (left, open) · the 3D model (right, built) | APPLICATION-VISION.md |
 | 4 | Architecture as a two-lane activity diagram, with the capture loop and the registration gate | context/architecture.md |
-| 5 | What one run costs: a stage bar whose widths are the measured seconds | context/measurements.md |
-| 6 | Open source placed on the workflow, each project expanding into role, licence and a picture | state/profile.md |
+| 5 | Open source placed on the workflow, each project expanding into role, licence and a picture | state/profile.md |
+| 6 | What one run costs: a stage bar whose widths are the measured seconds | context/measurements.md |
 | 7 | Three ways to drive: a fixed script · a trained model · an open slot | D-014, context/plan-driving.md |
 | 8 | The one rule any of the three has to satisfy: sideways motion | context/plan-driving.md |
-| 9 | Status board | the three plan files |
-| 10 | The open problem: the camera is fixed and points down | context/plan-robot.md package 2 |
+| 9 | The open problem: the camera is fixed and points down | context/plan-robot.md package 2 |
+| 10 | Status board | the three plan files |
 | 11 | The example model, live in the browser | § Assets |
+
+**Reordered 2026-09-10, two moves, on the human's choice between a minimal and a bolder option.** Open source moved above the cost slide, so that the architecture diagram is drawn (4), then labelled with who does each step (5), then timed (6) — three slides on one picture in increasing detail, instead of the cost slide interrupting. And the camera-angle slide moved up beside the sideways-motion rule (8, 9), because both say what the hardware physically permits during a capture; the status board had been wedged between them. The status board is now the summary immediately before the model, which is where a summary belongs.
+
+The rejected option moved the live model from 11 to 3, to show the result before explaining it. Declined: slide 1 already turns the model behind the headline, so the first impression is spent either way, and "here is where we stand and what the group does next" is the stronger close for a group talk than a model the room has already seen.
 
 **Section 7 carries the weight.** It is the part the group works on next, so the trained-model option names its requirements in full — labelled frames, ResNet-18 trained on the device, camera-only input, the beat-the-mean bar, exclusive time on shared hardware — instead of standing as one line beside the others. Section 8 exists only to give those three options a shared measuring stick, which is why it was cut from a full slide down to one figure and one paragraph.
 
-**One slide, one run.** Caught by an audit on 2026-09-09, after the rebuild introduced it: section 5's stage bar carries the 380 s end-to-end run (99 / 254 / 27 s, `fast` preset on 251 photos) while two of its detail panels quoted the 8000-step reference run on the same photos (974 s on the clock, 288 MB → 19 MB at 15.1×). Every figure traced to context/measurements.md, and together they were nonsense: 974 s cannot describe a 254 s stage, and the compression that actually ran there is 58 MB → 6.8 MB, a factor of 8.5. The details now come from the run the bar's widths are drawn from, and the one figure still borrowed from the longer run says so on the slide. **A figure is only measured if it comes from the same run as the figure beside it.**
+**One slide, one run.** Caught by an audit on 2026-09-09, after the rebuild introduced it: the cost slide's stage bar carries the 380 s end-to-end run (99 / 254 / 27 s, `fast` preset on 251 photos) while two of its detail panels quoted the 8000-step reference run on the same photos (974 s on the clock, 288 MB → 19 MB at 15.1×). Every figure traced to context/measurements.md, and together they were nonsense: 974 s cannot describe a 254 s stage, and the compression that actually ran there is 58 MB → 6.8 MB, a factor of 8.5. The details now come from the run the bar's widths are drawn from, and the one figure still borrowed from the longer run says so on the slide. **A figure is only measured if it comes from the same run as the figure beside it.**
 
 **Every number on a slide states what it is a number of.** Settled 2026-09-09 after a bare `380 s` and a bare `15.1×` reached the human and meant nothing to him. A figure carries a label a stranger can read, or it comes off the slide.
 
@@ -73,11 +77,15 @@ Anything beyond this list is decoration a projector cannot use.
 
 **Own material first.** Screenshots of our own runs are stronger than borrowed ones and carry no licence question. Foreign material appears exactly once, for `jetson-inference`, credited on the same card.
 
-**The JetBot still has no photograph**, and it is the one image nobody outside this project can produce. Section 6's JetBot card and section 10's sketch would both take one.
+**The JetBot still has no photograph**, and it is the one image nobody outside this project can produce. The JetBot card on the open-source slide and the sketch on the camera-angle slide would both take one.
 
 **No still of our own finished model, and this was tried.** Four camera positions in the viewer on 2026-09-09, every one of them fog: `context/measurements.md` already records that indoor runs come out hazy and that the viewer's opening camera sits inside the haze. A person can move past it in the live viewer on section 11, which is the honest way to show this model. A still would sell it under value.
 
-**The point cloud is the opening image.** COLMAP recovered **81 051** points in this run, read straight out of `runs/drjohnson/undistorted/sparse/points3D.bin`. context/measurements.md's benchmark table records 81 175 for the same dataset from a standalone invocation, 0.15 % apart; nobody has chased the difference and the deck quotes the file it actually draws. the deck draws 24 000 of them, rotating, to the right of the headline. Two corrections on 2026-09-09: an earlier build drew 6 000 and captioned them `31 086`, a number with no source anywhere in the repo; and the cloud carried the same 14.3° lean as the viewer. `presentation/pointcloud.py` now writes it, gravity rotation included, from the same `gravity.mjs` the viewer recipe uses.
+**The opening image is the trained model, not the sparse cloud** (changed 2026-09-10). The sparse cloud was there first and could not be made to read as a room, because it is not one — a few tens of thousands of separately triangulated feature points do not become a room by being drawn denser or brighter. It still draws the COLMAP card on the open-source slide, where the claim is COLMAP's own output. The opening cloud is now 188 695 of the model's 400 000 gaussians, every one that survives the opacity and size filters, packed as base64 int16 rather than JSON numbers: 12 bytes a splat against about 30, so the count rose by 57 % while the page fell from 10.05 to 8.69 MB. **The binding limit is frame time, not bytes** — measured 15.2 ms per frame at projector size against a 16.7 ms budget, so the next person to raise the count is trading frames for density, and `presentation/pointcloud.py` says so at the constant.
+
+**The cloud is a small box in the right-hand corner, and the type is capped to clear it** (2026-09-10). It briefly spanned 58 % of the slide, which reads as decoration rather than an object; small, it is also denser per screen area, which is the only variable legibility here depends on. Every width on that slide is measured in the page rather than guessed: the headline's three natural lines run 785, 746 and 1037 px against an .inner of 1110, so the third alone wants 93 % of the width and the four-line break is forced, not styled. Lead 62 %, figures 52 %, headline 78 % as a fallback for a missing Fraunces.
+
+**The sparse point cloud, for the open-source slide.** COLMAP recovered **81 051** points in this run, read straight out of `runs/drjohnson/undistorted/sparse/points3D.bin`. context/measurements.md's benchmark table records 81 175 for the same dataset from a standalone invocation, 0.15 % apart; nobody has chased the difference and the deck quotes the file it actually draws. the deck draws 24 000 of them, rotating, to the right of the headline. Two corrections on 2026-09-09: an earlier build drew 6 000 and captioned them `31 086`, a number with no source anywhere in the repo; and the cloud carried the same 14.3° lean as the viewer. `presentation/pointcloud.py` now writes it, gravity rotation included, from the same `gravity.mjs` the viewer recipe uses.
 
 **Foreign material carries a licence line** — project · licence · link — on the same card. Brush Apache-2.0, COLMAP BSD, SuperSplat / jetson-inference / JetBot MIT all permit redistribution with attribution.
 

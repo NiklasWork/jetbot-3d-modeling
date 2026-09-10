@@ -40,3 +40,5 @@ Separate repos, separate runtime, separately demonstrable (D-011). They meet at 
 | Demonstrable as | growing model in the live viewer | driving robot with live detection |
 
 The interface is deliberately dumb: a folder with images plus one file with detections per image. That folder lives at `captures/<name>/` in the repo root — inside the project so everything is one directory, git-ignored because a single drive is hundreds of megabytes. No protocol, no network API, no shared library — this ensures each side remains executable and individually repairable without the other.
+
+**Everything that comes off the robot lands here, not only capture drives.** Checkup frames, logs, anything fetched over SSH: `captures/<name>/` for images, named for what the set is and when (`mount-check-2026-09-10/`), and the repo root for everything else. The robot keeps nothing — a session that copies files down deletes its own scratch directory afterwards (VISION.md, *leave the robot as we found it*). Nothing is parked in `/tmp`, a home directory or a Downloads folder, because the next session has no way to find it there and the human has no way to know it exists.

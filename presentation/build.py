@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """Assemble presentation/deck.html from the template and the assets beside it.
 
-The deck is one self-contained file: the SuperSplat viewer, the sparse point
-cloud and the photographs all travel inside it, because the Artifact CSP
-blocks every external image and media host.
+The deck is one self-contained file: the SuperSplat viewer, both point clouds
+and the photographs all travel inside it, because the Artifact CSP blocks every
+external image and media host.
 
     python3 presentation/build.py
 
-Regenerating the two generated assets after a new pipeline run:
+Regenerating the generated assets after a new pipeline run:
 
-    python3 presentation/pointcloud.py <run>          # writes assets/pointcloud.json
+    python3 presentation/pointcloud.py <run>    # pointcloud.json AND splats.json
 
     splat-transform <run>/filtered.sog \
       -r $(node repos/pipeline-3d/gravity.mjs <run>/undistorted/sparse/images.bin) \
@@ -19,8 +19,9 @@ Regenerating the two generated assets after a new pipeline run:
 **The `-r` is not optional.** COLMAP anchors its world frame to the first
 registered camera, so a reconstruction lands at an arbitrary attitude and
 drjohnson lands 14.3 degrees off level. The SuperSplat viewer assumes +Y is up
-and cannot be steered out of a lean. `pointcloud.py` applies the same rotation
-to the sparse cloud itself, for the same reason.
+and cannot be steered out of a lean. `pointcloud.py` levels both canvas clouds
+for the same reason, and measures the result rather than trusting an axis —
+read its docstring before changing either rotation.
 """
 
 import base64
@@ -61,6 +62,7 @@ def main():
     subs = {
         "__ROOM_HTML__": room,
         "__POINTCLOUD__": read(os.path.join(ASSETS, "pointcloud.json")),
+        "__SPLATS__": read(os.path.join(ASSETS, "splats.json")),
         "__IMG_F6320__": data_uri("f6320.jpg", "image/jpeg"),
         "__IMG_DETECTNET__": data_uri("detectnet.jpg", "image/jpeg"),
     }

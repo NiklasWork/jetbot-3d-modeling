@@ -278,13 +278,49 @@ figcaption{font-size:clamp(11px,.92vw,13px);color:var(--faint);}
 }
 .load:hover{filter:brightness(1.1);} .load:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}
 
-/* the sparse cloud COLMAP recovered, rotating behind the opening claim */
-canvas.pcloud{position:absolute;inset:0;width:100%;height:100%;display:block;
-  z-index:0;opacity:.6;pointer-events:none;
-  -webkit-mask-image:linear-gradient(to right,transparent 40%,#000 74%);
-  mask-image:linear-gradient(to right,transparent 40%,#000 74%);}
-:root[data-theme="dark"] canvas.pcloud{opacity:.75;}
+/* the finished model, turning beside the opening claim */
+/* A small box in the right-hand corner, not a full-bleed layer. Spanning the
+   slide spent most of its pixels on empty paper under the headline and forced
+   the room to be magnified to fill any of it, which thins the points per
+   screen area — and that ratio is the one thing legibility here depends on.
+   Keeping the box small works the ratio from the other side: the same 189 000
+   points over a third of the area read denser than they ever did large. The
+   type then gets the full width of the slide back. */
+canvas.pcloud{position:absolute;right:0;top:50%;transform:translateY(-50%);
+  width:40%;height:76%;display:block;
+  z-index:0;opacity:.78;pointer-events:none;
+  -webkit-mask-image:linear-gradient(to right,transparent,rgba(0,0,0,.5) 34%,#000 64%);
+  mask-image:linear-gradient(to right,transparent,rgba(0,0,0,.5) 34%,#000 64%);}
+:root[data-theme="dark"] canvas.pcloud{opacity:.92;}
+/* Narrow screens have no column to give away, so it goes back to a wash
+   behind everything and leans on the fade alone. */
+@media (max-width:899px){
+  canvas.pcloud{width:100%;height:100%;top:0;transform:none;opacity:.5;
+    -webkit-mask-image:linear-gradient(to right,transparent 34%,#000 74%);
+    mask-image:linear-gradient(to right,transparent 34%,#000 74%);}
+}
 #s1 .inner{position:relative;z-index:1;}
+/* The headline breaks after "you can", and that is forced rather than styled.
+   Measured in the page: its three natural lines come to 785, 746 and 1037px
+   against an .inner of 1110, so the third alone wants 93% of the width — a
+   three-line headline and a room in the right-hand corner cannot both have it.
+   Broken into four, the widest line is 785px, 71%, and stops well clear of the
+   point where the mask lets the room become opaque.
+   The cap below never fires for this text. It is there so that a missing
+   Fraunces, whose fallback measures wider, rewraps the headline instead of
+   sliding it under the room. */
+@media (min-width:900px){
+  #s1 h1{max-width:78%;}
+  /* The lead and the four figures need a cap the headline's own breaks give it
+     for free. Measured in the page at a 1280 viewport: .inner is 1110 wide, the
+     room stops being transparent 862px in, and an uncapped lead runs to 929 —
+     67px under the carpet. 62% stops it at 773. The figures get 52% because
+     four in a row reach past the same line and put the last one, the "0",
+     inside the room; two rows of two clear it. Percentages resolve against
+     .inner, not the viewport. */
+  #s1 .lead{max-width:62%;}
+  #s1 .stats{max-width:52%;}
+}
 body.doc #s1{min-height:460px;display:flex;flex-direction:column;justify-content:center;}
 .cloudnote{position:absolute;z-index:1;right:clamp(20px,4vw,54px);bottom:clamp(16px,3vh,34px);
   font-size:clamp(10px,.82vw,12px);color:var(--faint);text-align:right;max-width:28ch;}
@@ -294,6 +330,7 @@ body.doc #s1{min-height:460px;display:flex;flex-direction:column;justify-content
 .foot a{color:var(--faint);}
 .notes{display:flex;flex-wrap:wrap;gap:clamp(10px,2vw,28px);font-size:clamp(10.5px,.88vw,13px);color:var(--faint);}
 .notes span{max-width:44ch;}
+.notes.wide span{max-width:none;}
 .notes b{color:var(--ink);font-weight:600;}
 body.deck .doconly{display:none;}
 body.doc .deckonly{display:none;}
@@ -313,10 +350,10 @@ body.doc .deckonly{display:none;}
 <!-- ═══ 1 · what this is ═══ -->
 <section id="s1">
   <canvas class="pcloud" id="pcloud-canvas" aria-hidden="true"></canvas>
-  <div class="cloudnote">24 000 of the 81 051 points our pipeline found in the example room. This is the sparse skeleton the finished model grows from.</div>
+  <div class="cloudnote">The finished example model, turning: 189 000 of its 400 000 coloured blobs, with the see-through ones left out so the room shows through.</div>
   <div class="inner">
     <div class="eyebrow">JCFS robotics project · JetBot 3D modeling</div>
-    <h1>A robot photographs a&nbsp;room.<br>A laptop turns those photos<br>into a 3D model you can walk&nbsp;through.</h1>
+    <h1>A robot photographs a&nbsp;room.<br>A laptop turns those photos<br>into a 3D model you&nbsp;can<br>walk&nbsp;through.</h1>
     <p class="lead">The laptop half is built and measured. The robot half has just come online. This deck shows both halves, the numbers behind them, and the parts that are still open.</p>
     <div class="stats" style="margin-top:.5em">
       <div class="stat"><span class="n mono">6 min</span><span class="l">From 251 photos to a finished 3D model, measured end to end</span></div>
@@ -463,16 +500,25 @@ body.doc .deckonly{display:none;}
       </svg>
       <figcaption>The dashed line is the only boundary that matters: whatever has to answer within about 100 ms stays on the robot, everything else crosses to the Mac.</figcaption>
     </figure>
-    <div class="notes">
+    <div class="notes wide">
       <span><b>The whole interface is a folder.</b> Numbered JPEG files, no protocol and no shared code, so either side runs and can be repaired without the other.</span>
-      <span><b>Two different worlds.</b> Python 3.6 frozen on the robot from 2019, Python 3.14 on the Mac. Merged, both sides would compromise for nothing.</span>
-      <span><b>A third machine, one job.</b> A Lenovo home server hosts the finished viewer so the link survives the talk. It computes nothing.</span>
     </div>
   </div>
 </section>
 
-<!-- ═══ 5 · what a run costs ═══ -->
+<!-- ═══ 5 · open source on the workflow ═══ -->
 <section id="s5">
+  <div class="inner">
+    <div class="eyebrow">Open source we build on</div>
+    <h2>Six projects, and where in the run each one does its work</h2>
+    <div class="osflow" id="osflow"></div>
+    <div class="osdetail" id="osdetail"></div>
+    <p class="hint">Click a project. Nothing here was written by us: our own code drives the robot, moves the folder and chains these six together.</p>
+  </div>
+</section>
+
+<!-- ═══ 6 · what a run costs ═══ -->
+<section id="s6">
   <div class="inner">
     <div class="eyebrow">Numbers · every one of them measured, none estimated</div>
     <h2>What one run costs</h2>
@@ -531,17 +577,6 @@ body.doc .deckonly{display:none;}
   </div>
 </section>
 
-<!-- ═══ 6 · open source on the workflow ═══ -->
-<section id="s6">
-  <div class="inner">
-    <div class="eyebrow">Open source we build on</div>
-    <h2>Six projects, and where in the run each one does its work</h2>
-    <div class="osflow" id="osflow"></div>
-    <div class="osdetail" id="osdetail"></div>
-    <p class="hint">Click a project. Nothing here was written by us: our own code drives the robot, moves the folder and chains these six together.</p>
-  </div>
-</section>
-
 <!-- ═══ 7 · three ways to drive ═══ -->
 <section id="s7">
   <div class="inner">
@@ -566,17 +601,16 @@ body.doc .deckonly{display:none;}
         <p>Camera image in, a steering correction out, many times a second, on the robot itself. It would take over the long wall pass, the one figure where driving blind drifts off course.</p>
         <p><b>What it would take:</b></p>
         <ul>
-          <li>A few hundred photos labelled by hand, one click each: where should it have steered?</li>
-          <li>A small network, ResNet&#8209;18, trained on the robot. Its 2019 software stack is already there, so nothing has to be moved.</li>
-          <li>Hours of exclusive time on a robot that other projects share.</li>
-          <li>A test it can actually fail: steer better than a network that always answers with the average.</li>
+          <li>A few hundred photos, labelled by hand: where should it have steered?</li>
+          <li>A ResNet&#8209;18, trained on the robot's own 2019 stack.</li>
+          <li>Hours of exclusive time on shared hardware.</li>
+          <li>A test it can fail: beat a network that always answers with the average.</li>
         </ul>
       </div>
       <div class="card" style="border-style:dashed;border-color:var(--accent)">
         <span class="tag t-open">3 · your idea</span>
         <h3 style="font-size:clamp(28px,3.2vw,44px);color:var(--accent);line-height:1">?</h3>
         <p>Something else, or a mix of the two. Whatever it is has to live with the same hardware: <b>one camera, no wheel sensors, no motion sensor, no map</b>, and a computer from 2019.</p>
-        <p>One idea already on the table: the half&#8209;finished 3D model knows where it is still thin, so send the robot to the viewpoints that would fill those gaps. That needs a position the robot does not have.</p>
         <p class="hint"><b>This slot is deliberately empty.</b> Tell us what you would try.</p>
       </div>
     </div>
@@ -587,7 +621,7 @@ body.doc .deckonly{display:none;}
 <!-- ═══ 8 · the one rule ═══ -->
 <section id="s8">
   <div class="inner">
-    <div class="eyebrow">The rule all three have to satisfy</div>
+    <div class="eyebrow">The test all three have to pass</div>
     <h2>The camera has to move sideways past what it photographs</h2>
     <figure>
       <svg viewBox="0 0 900 200" role="img" aria-label="Spinning on the spot and driving straight at a wall both give no parallax; passing a wall sideways gives parallax between two viewpoints.">
@@ -629,32 +663,17 @@ body.doc .deckonly{display:none;}
         <text x="770" y="186" text-anchor="middle" font-size="11.5" fill="var(--accent)" font-weight="700">depth</text>
       </svg>
     </figure>
-    <p class="lead wide">To rebuild a surface, the software has to see it from two positions far enough apart. Turning on the spot gives it plenty of overlap and nothing to measure against. Driving straight at a wall gives it nothing either, at least not in the middle of the picture. Passing a wall sideways does. <b>That is the test every one of the three options on the previous slide has to pass</b>, and it is why an obstacle avoider, which only ever drives straight and then turns, delivers photos that cannot be used.</p>
+    <p class="lead wide">To rebuild a surface, the software has to see it from two positions far enough apart. Turning on the spot never moves the camera. Driving at a wall never moves it sideways. Only passing the wall does. <b>Every one of the three options has to produce that sideways motion</b>, which is why an obstacle avoider, that drives straight and then turns, delivers photos nobody can use.</p>
   </div>
 </section>
 
-<!-- ═══ 9 · status ═══ -->
+<!-- ═══ 9 · the camera angle ═══ -->
 <section id="s9">
-  <div class="inner">
-    <div class="eyebrow">Status · 9 September 2026</div>
-    <h2>Where this actually stands</h2>
-    <div class="legend">
-      <span><i class="s-ok"></i> Built and tested</span>
-      <span><i class="s-warn"></i> Written, never run on the robot</span>
-      <span><i class="s-idle"></i> Open</span>
-    </div>
-    <div class="grid" id="board" style="gap:8px;min-height:0;overflow-y:auto"></div>
-    <p class="hint">Click a branch to fold it away. The counts come straight from the project's own planning files, not from a summary written for this deck.</p>
-  </div>
-</section>
-
-<!-- ═══ 10 · the camera angle ═══ -->
-<section id="s10">
   <div class="inner">
     <div class="eyebrow">The open problem</div>
     <h2>The camera sits low, points down, and does not move</h2>
     <figure>
-      <svg viewBox="0 0 900 290" role="img" aria-label="Side view of the robot: the camera sits about 10 centimetres above the floor on a fixed bracket that points downwards, so its field of view lands mostly on the floor a short distance ahead, catches the wall only near the top edge, and misses the ceiling entirely.">
+      <svg viewBox="0 0 900 290" role="img" aria-label="Side view of the robot: the camera sits about 10 centimetres above the floor on a fixed bracket that points downwards, so a large share of its field of view lands on the floor a short distance ahead, while the far wall and a strip of ceiling are still inside the frame.">
         <defs>
           <marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
@@ -673,8 +692,8 @@ body.doc .deckonly{display:none;}
         <text x="440" y="32" font-size="11" fill="currentColor" opacity=".45">ceiling</text>
 
         <!-- what the camera sees -->
-        <path d="M196 204 L800 150 L800 250 L352 250 z" fill="var(--accent)" opacity=".12"/>
-        <line x1="196" y1="204" x2="795" y2="151" stroke="var(--accent)" stroke-width="1.3" opacity=".8"/>
+        <path d="M196 204 L742 40 L800 40 L800 250 L352 250 z" fill="var(--accent)" opacity=".12"/>
+        <line x1="196" y1="204" x2="742" y2="40" stroke="var(--accent)" stroke-width="1.3" opacity=".8"/>
         <line x1="196" y1="204" x2="364" y2="250" stroke="var(--accent)" stroke-width="1.3" opacity=".8"/>
         <text x="470" y="228" font-size="12.5" font-weight="700" fill="var(--accent)">what the camera sees</text>
 
@@ -697,12 +716,26 @@ body.doc .deckonly{display:none;}
         <line x1="360" y1="262" x2="560" y2="262" stroke="var(--bloom2)" stroke-width="1.1" stroke-dasharray="3 3" opacity=".8"/>
         <text x="360" y="280" font-size="12" fill="var(--bloom2)">floor takes up the lower part of every photo</text>
 
-        <line x1="812" y1="150" x2="856" y2="120" stroke="currentColor" stroke-width="1.1" opacity=".55" marker-start="url(#ad)"/>
-        <text x="860" y="114" text-anchor="end" font-size="11.5" fill="currentColor" opacity=".7">the wall only near the top edge</text>
-        <text x="860" y="60" text-anchor="end" font-size="11.5" fill="currentColor" opacity=".55">the ceiling not at all</text>
+        <text x="792" y="180" text-anchor="end" font-size="11.5" fill="currentColor" opacity=".7">the far wall, top to bottom</text>
+        <text x="792" y="32" text-anchor="end" font-size="11.5" fill="currentColor" opacity=".55">and a strip of ceiling</text>
       </svg>
     </figure>
-    <p class="lead wide">If most of every photo is floor, the run produces an excellent floor and a poor room, because a surface that was never photographed cannot be rebuilt. <b>Nobody has measured this.</b> The project's own plan asked for a camera tilted slightly upwards, and the delivered mount does the opposite. One photo taken from the standing robot settles it, and that photo does not exist yet.</p>
+    <p class="lead wide">If most of every photo is floor, the run produces an excellent floor and a poor room, because a surface that was never photographed cannot be rebuilt. The project's own plan asked for a camera tilted slightly upwards, and the delivered mount does the opposite. <b>The first frames off the robot say it is milder than it looks:</b> the lens is wide enough that the far wall and a strip of ceiling are both in the picture. What they do not settle is how much of the frame the floor takes, because the robot was standing on a table when they were taken. One frame from the floor closes it.</p>
+  </div>
+</section>
+
+<!-- ═══ 10 · status ═══ -->
+<section id="s10">
+  <div class="inner">
+    <div class="eyebrow">Status · 9 September 2026</div>
+    <h2>Where this actually stands</h2>
+    <div class="legend">
+      <span><i class="s-ok"></i> Built and tested</span>
+      <span><i class="s-warn"></i> Written, never run on the robot</span>
+      <span><i class="s-idle"></i> Open</span>
+    </div>
+    <div class="grid" id="board" style="gap:8px;min-height:0;overflow-y:auto"></div>
+    <p class="hint">Click a branch to fold it away. The counts come straight from the project's own planning files, not from a summary written for this deck.</p>
   </div>
 </section>
 
@@ -727,6 +760,7 @@ body.doc .deckonly{display:none;}
 </main>
 
 <script id="pointcloud" type="application/json">__POINTCLOUD__</script>
+<script id="splats" type="application/json">__SPLATS__</script>
 <script id="roomsrc" type="text/plain">__ROOM_HTML__</script>
 
 <script>
@@ -819,8 +853,15 @@ body.doc .deckonly{display:none;}
   });
   paint();
 
-  /* ── the point cloud, drawn from the run's own sparse model ───────── */
+  /* ── the two clouds, both from the same run ───────────────────────────
+     PTS is COLMAP's sparse output and illustrates the COLMAP card on the
+     open-source slide, so it has to stay COLMAP's. SPL is the trained model
+     and carries the opening slide. The opening slide used to draw PTS and
+     could not be made to read as a room, because it is not one: a few tens
+     of thousands of separately triangulated feature points do not become a
+     room by being made denser or brighter. */
   var PTS=JSON.parse(document.getElementById('pointcloud').textContent);
+  var SPL=JSON.parse(document.getElementById('splats').textContent);
 
   /* `stride` thins the cloud for small canvases: 24 000 points at three device
      pixels each cover a card-sized box several times over and come out as one
@@ -856,7 +897,7 @@ body.doc .deckonly{display:none;}
     el.width=w; el.height=h;
     var c=el.getContext('2d');
     c.clearRect(0,0,w,h);
-    project(c,w,h,0.9,0.5,0.32,2,6,0.7);
+    project(c,w,h,0.9,0.5,0.50,2,3,0.85);
   }
 
   /* ── S5 stage bar ─────────────────────────────────────────────────── */
@@ -1000,29 +1041,150 @@ body.doc .deckonly{display:none;}
 
   var pcEl=document.getElementById('pcloud-canvas');
   if(pcEl){
-    var ctx=pcEl.getContext('2d'), ang=0, last=0;
+    var sctx=pcEl.getContext('2d'), ang=0, last=0;
     var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    /* Re-measure on every frame but only reallocate when the box actually
-       changed: going fullscreen on a projector resizes the viewport after load. */
-    function frame(){
-      var w=Math.max(1,pcEl.clientWidth)*2, h=Math.max(1,pcEl.clientHeight)*2;
-      if(pcEl.width!==w||pcEl.height!==h){ pcEl.width=w; pcEl.height=h; }
-      ctx.clearRect(0,0,w,h);
-      project(ctx,w,h,ang,0.79,0.35,2,1,1);
+
+    /* The cloud arrives as two base64 blocks, not as JSON numbers: three
+       int16 and three uint8 per splat cost 12 bytes where the text form cost
+       about 30, which is what lets the page carry every splat that survived
+       filtering instead of two thirds of them. Unpacked once into flat typed
+       arrays, because an array of 189 000 six-element arrays would be three
+       million property lookups per frame. */
+    var N=SPL.n, INV=SPL.clip/32767;
+    var SX=new Float32Array(N), SY=new Float32Array(N), SZ=new Float32Array(N);
+    var CL;
+    (function(){
+      function bytes(b64){
+        var bin=atob(b64), n=bin.length, u=new Uint8Array(n);
+        for(var i=0;i<n;i++) u[i]=bin.charCodeAt(i);
+        return u;
+      }
+      /* Int16Array over the buffer reads in the CPU's byte order and the
+         packer writes little-endian. Every browser this opens in is x86 or
+         ARM; a big-endian one would show confetti and no error. */
+      var q=new Int16Array(bytes(SPL.pos).buffer);
+      CL=bytes(SPL.col);
+      for(var i=0,j=0;i<N;i++,j+=3){
+        SX[i]=q[j]*INV; SY[i]=q[j+1]*INV; SZ[i]=q[j+2]*INV;
+      }
+    })();
+    SPL=null;
+
+    /* Scratch space, allocated once. Per-frame allocation of six arrays this
+       size is what turns a smooth background into a stuttering one. */
+    var NB=128;                      /* depth buckets, coarse on purpose */
+    var cnt=new Int32Array(NB), ord=new Int32Array(N), bkt=new Uint8Array(N);
+    var qx=new Float32Array(N), qy=new Float32Array(N), qd=new Float32Array(N);
+    var img=null;
+
+    /* Tip the camera down a little. A room read from exactly its own
+       mid-height is seen edge-on and straight through its walls, which is the
+       one angle at which an interior does not look like an interior. */
+    var cel=Math.cos(0.34), sel=Math.sin(0.34);
+
+    /* Why this paints pixels by hand instead of calling fillRect 60 000 times.
+       Two reasons, and both of them are the difference between a haze and a
+       room. A canvas has no depth buffer, so without an explicit
+       back-to-front order the far wall paints over the near furniture in
+       whatever order the file happened to hold it — that alone was most of
+       why the first attempt was unreadable. And setting fillStyle per point
+       costs more than the drawing does at this count. The counting sort is
+       two linear passes and no comparisons. */
+    function render(){
+      /* One CSS pixel per canvas pixel, capped: this is a soft background, and
+         a 2x backing store on a projector quadruples the per-frame clear for
+         nothing anyone can see. */
+      var cw=Math.max(1,pcEl.clientWidth), ch=Math.max(1,pcEl.clientHeight);
+      var w=Math.min(1100,cw), h=Math.max(1,Math.round(w*ch/cw));
+      if(pcEl.width!==w||pcEl.height!==h||!img){
+        pcEl.width=w; pcEl.height=h; img=sctx.createImageData(w,h);
+      }
+      var data=img.data;
+      data.fill(0);
+
+      var ca=Math.cos(ang), sa=Math.sin(ang);
+      var sc=w*0.92, cx=w*0.58, cy=h*0.46;
+      var zlo=1e9, zhi=-1e9, i, z;
+      for(i=0;i<N;i++){
+        var x0=SX[i], y0=SY[i], z0=SZ[i];
+        var x=x0*ca-z0*sa; z=x0*sa+z0*ca;      /* turn about the vertical */
+        var y=y0*cel-z*sel; z=y0*sel+z*cel;    /* then tip it down */
+        /* The camera stands just inside the room rather than off at a
+           distance, because a 3DGS room seen from outside is a lump: the model
+           includes the shell, so from out there the walls hide everything the
+           slide is claiming. CAM below the room's own half-width puts the eye
+           between the walls, which is also what the viewer on the last slide
+           opens to. NEAR then throws away what ends up behind the eye — those
+           points divide by a negative depth and would otherwise be flung to
+           the far side of the canvas, mirrored. */
+        var dep=z+1.95;
+        if(dep<0.30){ qd[i]=-1e9; continue; }
+        var d=1.0/dep;
+        qx[i]=cx+x*sc*d; qy[i]=cy+y*sc*d; qd[i]=z;
+        if(z<zlo) zlo=z;
+        if(z>zhi) zhi=z;
+      }
+
+      cnt.fill(0);
+      var k=(NB-1)/((zhi-zlo)||1), b;
+      /* Clipped points get bucket 0 and are skipped when drawn; they still
+         need a bucket, because the placement pass below indexes every one. */
+      for(i=0;i<N;i++){
+        b=qd[i]===-1e9?0:(qd[i]-zlo)*k|0;
+        if(b<0) b=0; else if(b>=NB) b=NB-1;
+        bkt[i]=b; cnt[b]++;
+      }
+      /* Prefix sum walked downwards, so the farthest bucket lands at offset 0
+         and the nearest is written last, over the top of everything behind. */
+      var run=0, c;
+      for(b=NB-1;b>=0;b--){ c=cnt[b]; cnt[b]=run; run+=c; }
+      for(i=0;i<N;i++){ ord[cnt[bkt[i]]++]=i; }
+
+      for(var o=0;o<N;o++){
+        i=ord[o];
+        if(qd[i]===-1e9) continue;             /* clipped behind the eye */
+        var d2=1.0/(qd[i]+1.95);
+        /* Every point covers at least 2x2. A single pixel per splat is what
+           made this read as speckle rather than surface: legibility here is
+           coverage per screen area, and coverage is points times area each. */
+        var s=d2>0.78?2:1;
+        var sx=qx[i]|0, sy=qy[i]|0;
+        if(sx<0||sy<0||sx+s>=w||sy+s>=h) continue;
+        var a=d2>0.78?0.92:0.30+0.72*d2;
+        if(a>1) a=1;
+        var ci=i*3, r=CL[ci], g=CL[ci+1], bb=CL[ci+2];
+        for(var dy=0;dy<=s;dy++){
+          var pi=((sy+dy)*w+sx)<<2;
+          for(var dx=0;dx<=s;dx++,pi+=4){
+            /* ImageData holds straight, not premultiplied, alpha, so a plain
+               lerp towards a transparent pixel would darken it towards black
+               instead of leaving its colour alone. */
+            var da=data[pi+3]/255, oa=a+da*(1-a);
+            if(oa<=0) continue;
+            var wa=a/oa, wd=da*(1-a)/oa;
+            data[pi]  =r *wa+data[pi]  *wd;
+            data[pi+1]=g *wa+data[pi+1]*wd;
+            data[pi+2]=bb*wa+data[pi+2]*wd;
+            data[pi+3]=oa*255;
+          }
+        }
+      }
+      sctx.putImageData(img,0,0);
     }
+
     /* Rotation is driven by elapsed time, so a slow machine turns at the same
        speed as a fast one and simply draws fewer frames on the way. */
     function loop(ts){
       var dt=last?Math.min(64,ts-last):16.7; last=ts;
-      ang+=0.0016*(dt/16.7);
-      frame();
+      ang+=0.0013*(dt/16.7);
+      render();
       requestAnimationFrame(loop);
     }
     /* Paint the first frame synchronously. requestAnimationFrame does not fire
        while the tab sits in the background, and a deck that opens to an empty
        canvas because it was loaded in a second tab is worse than no canvas. */
-    frame();
-    if(reduce) window.addEventListener('resize',frame,{passive:true});
+    render();
+    if(reduce) window.addEventListener('resize',render,{passive:true});
     else requestAnimationFrame(loop);
   }
 

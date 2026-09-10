@@ -20,6 +20,7 @@ Driving is manual, a driving algorithm is an optional expansion (D-006). Staged 
 - Fun project — visuals count: a result that looks cool beats a complete one
 - Functional instead of facade — do not demonstrate anything that doesn't actually run
 - **Leave the robot as we found it** — it is shared hardware; touch as little of it as possible, and be able to say at any moment which files, folders and processes on it are ours
+- **One directory holds the project** — everything imported off the robot lands in this repo and nowhere else: capture drives, checkup frames, logs, anything fetched over SSH. Bulk stays out of the history (gitignored), never out of the repo. Where each kind goes is context/architecture.md § Two development branches
 
 ## Constraints
 
