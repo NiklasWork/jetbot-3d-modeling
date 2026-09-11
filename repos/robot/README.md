@@ -146,9 +146,12 @@ in `~/.ssh/config`, so `ssh jetbot`, `rsync` and `jetbot-run.sh` all reach the
 robot without an address being written down anywhere.
 
 The robot gets its address from DHCP and it changes. `jetbot.local` is not the
-way out: it does not resolve on this network (checked 2026-09-11 — mDNS is
-either off on the device or dropped by the access point). What does not change
-is the MAC, so that is the identity: the script reads the ARP table, and on a
+way out, and the reason is now measured rather than guessed: the robot's
+hostname *is* `jetbot`, but `avahi-daemon` is installed and **inactive**
+(checked over SSH 2026-09-11), so nothing answers for the name. Starting it
+would make this script unnecessary — and would also put a systemd unit on a
+shared robot, which § Our footprint says we do not do without asking. What does
+not change either way is the MAC, so that is the identity: the script reads the ARP table, and on a
 cold cache pings the whole /24 first to fill it. `HostKeyAlias jetbot-3d` in the
 ssh config stores the host key under a name instead of an address, so a new
 address is not a host-key warning.

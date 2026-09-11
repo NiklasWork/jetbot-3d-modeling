@@ -9,10 +9,12 @@
 #   ./jetbot-host.sh --print     # print the address it found, connect to nothing
 #   ./jetbot-host.sh 22          # wire stdin/stdout to that address (what ssh calls)
 #
-# Why not a hostname: `jetbot.local` does not resolve on this network — mDNS is
-# either off on the device or dropped by the access point (checked 2026-09-11).
-# A DHCP reservation on the router is the tidier fix and would make this script
-# unnecessary; until then this needs no change on the robot or the router.
+# Why not a hostname: `jetbot.local` does not resolve, and now we know why —
+# `avahi-daemon` is installed on the robot but **inactive** (checked over SSH
+# 2026-09-11). Enabling it would make the hostname work and this script
+# pointless, but that means a systemd unit on a shared robot, which our
+# footprint rule forbids without asking. Until someone decides that, or sets a
+# DHCP reservation on the router, this needs no change on robot or router.
 #
 # POSIX sh on purpose: Homebrew's bash 5 returns an empty `arp` table under a
 # sandboxed agent session, which would make this silently find nothing there.
