@@ -16,6 +16,8 @@ Confirmed via the flashed image `jetbot-043_nano-4gb-jp45`: classic Jetson Nano 
 
 **Python can be upgraded, but it wouldn't solve the problem.** A newer Python is installable on Ubuntu 18.04 (deadsnakes or custom build), but NVIDIA provides CUDA-capable PyTorch wheels exclusively for the included Python 3.6 — even the official `l4t-pytorch` container is 3.6. Anything above that would mean compiling PyTorch from scratch with CUDA. And the actual ceiling is lower than Python: the Maxwell GPU can only do CUDA 10.2, PyTorch 2.x requires CUDA 11+. A modern Torch stack is therefore unreachable on this hardware regardless of the Python version. If you still want to run a newer model, go via ONNX → TensorRT 7.1: this runs GPU-accelerated from within Python 3.6 and makes the model choice independent of the Python version.
 
+**Battery: 3S Li-ion, readable over I2C.** The INA219 at i2c-1 `0x41` returns pack voltage in register `0x02` (4 mV per LSB, byte-swapped by SMBus). Measured 2026-09-11 with the Nano running: 12.00 V, so 4.00 V per cell and a three-cell pack — 12.6 V full, ~9 V where the protection board cuts. Nothing of ours reads it yet. It matters beyond runtime: the motors sit on the pack directly, so a step length calibrated at a full pack is shorter at a flat one, and the manoeuvre geometry in `capture.py` drifts with charge rather than staying a constant.
+
 The image comes with the JetBot notebooks — `basic_motion` and `teleoperation` already provide the manual control including live camera image from D-006 out of the box, `collision_avoidance` and `road_following` are the template for the optional driving algorithm.
 
 ## Staged plan
