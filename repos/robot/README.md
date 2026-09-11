@@ -135,6 +135,37 @@ Also settable: `JETBOT_HOST` (default `jetbot`, meant to be a `~/.ssh/config`
 entry so no IP is pinned here), `JETBOT_CAPTURES` (default `<repo>/captures`),
 `JETBOT_CAMERA`, `JETBOT_REMOTE_DIR`, `RSYNC`.
 
+### `jetbot-host.sh` — on the Mac
+
+```bash
+./jetbot-host.sh --print               # the robot's current IP, or a clear failure
+```
+
+Not a script you run often — it is the `ProxyCommand` behind the `jetbot` entry
+in `~/.ssh/config`, so `ssh jetbot`, `rsync` and `jetbot-run.sh` all reach the
+robot without an address being written down anywhere.
+
+The robot gets its address from DHCP and it changes. `jetbot.local` is not the
+way out: it does not resolve on this network (checked 2026-09-11 — mDNS is
+either off on the device or dropped by the access point). What does not change
+is the MAC, so that is the identity: the script reads the ARP table, and on a
+cold cache pings the whole /24 first to fill it. `HostKeyAlias jetbot-3d` in the
+ssh config stores the host key under a name instead of an address, so a new
+address is not a host-key warning.
+
+Override the MAC with `JETBOT_MAC=…` if the WiFi module is ever swapped or the
+robot moves to Ethernet. A DHCP reservation on the router would make the whole
+script unnecessary — that is the tidier fix, and it needs the router, not us.
+
+The key is per-person and never leaves the Mac: `~/.ssh/jetbot_3d`, offered
+only to this host (`IdentitiesOnly yes`). Password login on the robot is
+deliberately untouched, so `ssh jetbot@<ip>` with the image's own password
+keeps working for anyone else on the device. Install your key once with
+
+```bash
+ssh-copy-id -i ~/.ssh/jetbot_3d.pub jetbot
+```
+
 ## Our footprint on the robot
 
 Other projects run on this device. Everything we put on it stays inside the three
