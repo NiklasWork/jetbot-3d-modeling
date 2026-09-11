@@ -17,3 +17,4 @@
 - **D-012** — Object detection on the robot, 3D placement on the Mac
 - **D-013** — Stop-and-Go with script-controlled capture
 - **D-014** — Semi-autonomous manoeuvres as the driving algorithm
+- **D-015** — The robot code gets its own git repo, cloned under repos/

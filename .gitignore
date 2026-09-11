@@ -31,3 +31,8 @@ captures/
 # reasoning as captures/: reproducible bulk does not belong in the history.
 presentation/deck.html
 presentation/assets/room.html
+
+# The robot code repo, cloned as its own git repo (D-015). Its history belongs
+# to github.com/janniskrn/robotic-jetbot, not to this one — 169 MB of forked
+# NVIDIA assets have no business in the Truss history.
+repos/robotic-jetbot/

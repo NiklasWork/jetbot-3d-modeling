@@ -53,3 +53,16 @@ Options:
 Trade-offs: A and B are not alternatives and the pair is the cheap answer — A improves what the data contains, B stops the viewer wandering into views the data cannot support. C and D are per-drive choices, reversible, and can wait. E is the only one that changes what the project is; it is also the only one that makes the low viewpoint an advantage rather than a cost.
 Leaning: B now, because it costs nothing and is reversible; A next if the human is willing to put a mast on shared hardware. E is worth keeping in view because the driving branch would consume exactly that model.
 Needed from human: whether a removable mast on the JetBot is acceptable, and whether the viewer should be pinned to robot height.
+
+## OD-006 — How the robot pulls the code, when the repo it pulls is a fork of jetbot
+
+Opened: 2026-09-11
+Context: D-015 makes `github.com/janniskrn/robotic-jetbot` the code repo, and the scripts move into it later. The repo is an unmodified fork of `NVIDIA-AI-IOT/jetbot`: 169 MB, of which 73 MB is history, and its working tree contains the `jetbot` package, the notebooks and the docker setup. Cloning that on the device costs 169 MB of 1.5 GB free, puts a second copy of the package tree beside the existing `/home/jetbot/jetbot/`, and re-creates the trap `repos/robot/README.md` documents — a directory named `jetbot/` next to the working directory makes `import jetbot` succeed and yield nothing. It also breaks VISION.md's "leave the robot as we found it" by two orders of magnitude over the three files we actually run. Blocks the first `git pull` on the robot, not the clone on the Mac.
+Options:
+- A: clone it whole on the robot — `git clone` into `~/jetbot-3d/`, live with the tree +one repo, one command, nothing to explain / –169 MB, a duplicate `jetbot/` package directory, and the namespace trap back in the path
+- B: strip the fork, then shallow-clone (recommended) — delete NVIDIA's tree on `master` so the repo holds only our scripts, then `git clone --depth 1` on the robot +the device gets three files and no `jetbot/` directory; history stays on GitHub if it is ever wanted / –the fork keeps pointing at NVIDIA, so a PR still defaults there and the repo is public
+- C: sparse checkout — keep the fork whole and check out only our paths on the device +nothing thrown away / –Ubuntu 18.04 ships git 2.17, which has only the pre-cone `core.sparseCheckout`; fiddly to set up by hand and easy to lose on the next clone
+- D: no clone on the robot — keep pushing from the Mac with rsync +zero footprint, works today / –exactly the manual step D-015 exists to remove
+Trade-offs: All four are reversible. B is the only one that gives the pull-based workflow at a footprint the device can carry; its cost is cosmetic (fork relation, visibility) where A's is operational. The public-fork question is separate and also settled by a fresh non-fork repo, which stays available until the scripts have moved.
+Leaning: B, and do the strip before the scripts move in rather than after — a repo that never carried our code next to NVIDIA's is cleaner than one that did.
+Needed from human: whether the fork gets stripped down to our code, and whether our code being public is acceptable.
