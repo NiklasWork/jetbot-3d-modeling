@@ -18,6 +18,8 @@ Confirmed via the flashed image `jetbot-043_nano-4gb-jp45`: classic Jetson Nano 
 
 **Battery: 3S Li-ion, readable over I2C.** The INA219 at i2c-1 `0x41` returns pack voltage in register `0x02` (4 mV per LSB, byte-swapped by SMBus). Measured 2026-09-11 with the Nano running: 12.00 V, so 4.00 V per cell and a three-cell pack — 12.6 V full, ~9 V where the protection board cuts. Nothing of ours reads it yet. It matters beyond runtime: the motors sit on the pack directly, so a step length calibrated at a full pack is shorter at a flat one, and the manoeuvre geometry in `capture.py` drifts with charge rather than staying a constant.
 
+**The robot lives on the university network.** Stated by the human 2026-09-12, and it decides more than it looks: the device sits behind a NAT nobody here administers, so no address can be forwarded to it and no router reservation can be set, and the Lenovo's Tailscale subnet route covers `192.168.178.0/24` — the wrong network. Anything reaching the robot from elsewhere must therefore be a connection the robot opens outward (OD-007). Reaching it over `jetbot-host.sh` still works, but only with the Mac on that same WLAN: the lookup reads the Mac's ARP table, and layer 2 ends at the router.
+
 The image comes with the JetBot notebooks — `basic_motion` and `teleoperation` already provide the manual control including live camera image from D-006 out of the box, `collision_avoidance` and `road_following` are the template for the optional driving algorithm.
 
 ## Staged plan
